@@ -679,14 +679,14 @@ refreshCapturesList().catch(() => {});
 
 // ----- Daily training plan -------------------------------------------------
 
-// Map plan zones → inline SVG illustrations. Each renders at currentColor
-// (i.e. the plan's color) so it harmonises with the label colour.
+// Map plan zones → inline SVG illustrations. Zone keys match plan.js
+// (rest / active / train / push). Each renders at currentColor so it
+// harmonises with the label colour.
 const PLAN_SVG = {
   rest: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 44 V32 a4 4 0 0 1 4-4 h26 a8 8 0 0 1 8 8 v8"/><path d="M4 48 H56"/><path d="M4 48 V52"/><path d="M56 48 V52"/><circle cx="18" cy="30" r="4" fill="currentColor" stroke="none" opacity="0.4"/><text x="48" y="22" font-size="11" font-weight="700" fill="currentColor" stroke="none" font-family="Inter,sans-serif">z</text><text x="54" y="16" font-size="9" font-weight="700" fill="currentColor" stroke="none" font-family="Inter,sans-serif" opacity="0.6">z</text></svg>',
-  recover: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="34" cy="14" r="4"/><path d="M32 22 v10 l-8 18"/><path d="M32 26 l10 6 6 -4"/><path d="M24 50 l-4 4"/><path d="M40 50 l4 6"/></svg>',
-  moderate: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="46" r="10"/><circle cx="48" cy="46" r="10"/><path d="M16 46 L30 22 L44 38 L48 46"/><path d="M28 20 H36"/></svg>',
-  push: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="22" width="8" height="20" rx="2"/><rect x="52" y="22" width="8" height="20" rx="2"/><rect x="14" y="26" width="6" height="12" rx="1"/><rect x="44" y="26" width="6" height="12" rx="1"/><path d="M20 32 H44"/></svg>',
-  allout: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6 C 20 18 16 28 16 36 a16 16 0 0 0 32 0 c0 -8 -4 -18 -16 -30 z"/><path d="M26 36 c0 -4 2 -8 6 -12 c4 4 6 8 6 12 a6 6 0 0 1 -12 0 z"/></svg>',
+  active: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="34" cy="12" r="4"/><path d="M34 18 v12 l-10 18 M34 28 l10 8 6 -4 M24 48 l-4 6 M44 48 l4 6"/></svg>',
+  train: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="10" r="4"/><path d="M32 16 v10 l-8 14 l4 12 M32 22 l10 8 8 -4 M28 38 h-6 v6 M40 36 l-4 16"/></svg>',
+  push: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M32 4 C 20 16 16 26 16 34 a16 16 0 0 0 32 0 c0 -8 -4 -18 -16 -30 z" fill="currentColor" fill-opacity="0.15"/><path d="M26 34 c0 -4 2 -8 6 -12 c4 4 6 8 6 12 a6 6 0 0 1 -12 0 z" fill="currentColor" fill-opacity="0.6"/></svg>',
 };
 
 async function renderDailyPlan() {
@@ -706,10 +706,13 @@ async function renderDailyPlan() {
     const recoveries = metrics.map((m) => m.recovery_score).filter((v) => v != null);
     const lowStreakDays = recoveries.length >= 3 && recoveries.slice(0, 3).every((r) => r < 33);
 
+    // Treat recovery=0 with no HRV as null (rollup writes zeros when no overnight)
+    const hasRec = today.recovery_score != null && today.recovery_score > 0 && today.rmssd_ms != null;
+    const hasSleep = today.sleep_minutes != null && today.sleep_minutes > 0;
     const plan = dailyPlan({
-      recoveryScore: today.recovery_score,
-      sleepPerformancePct: today.sleep_performance_pct,
-      sleepDebtMinutes: today.sleep_debt_minutes,
+      recoveryScore: hasRec ? today.recovery_score : null,
+      sleepPerformancePct: hasSleep ? today.sleep_performance_pct : null,
+      sleepDebtMinutes: hasSleep ? today.sleep_debt_minutes : null,
       avgStrain7d,
       lowStreakDays,
     });

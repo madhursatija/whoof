@@ -687,21 +687,23 @@ async function loadRecovery() {
   renderDateNav("recovery-date", data.date ?? dateParam);
 
   const m = data.summary || {};
-  const noData = data.summary == null;
-  const recColor = recoveryColor(m.recovery_score);
-  drawRing($("recovery-ring-big"), m.recovery_score, recColor, 100, { stroke: 26 });
+  // recovery_score=0 with no HRV is "no data", same as in Overview
+  const hasRec = data.summary != null && m.recovery_score != null && m.recovery_score > 0 && m.rmssd_ms != null;
+  const recScore = hasRec ? m.recovery_score : null;
+  const recColor = recoveryColor(recScore);
+  drawRing($("recovery-ring-big"), recScore, recColor, 100, { stroke: 26 });
   if ($("recovery-ring-big-num")) {
-    $("recovery-ring-big-num").innerHTML = (m.recovery_score != null)
-      ? `${Math.round(m.recovery_score)}<span class="unit">%</span>`
+    $("recovery-ring-big-num").innerHTML = hasRec
+      ? `${Math.round(recScore)}<span class="unit">%</span>`
       : `—<span class="unit">%</span>`;
-    $("recovery-ring-big-num").style.color = m.recovery_score != null ? "var(--text)" : "var(--text-faint)";
+    $("recovery-ring-big-num").style.color = hasRec ? "var(--text)" : "var(--text-faint)";
   }
   if ($("recovery-state-big")) {
-    $("recovery-state-big").textContent = noData ? "No data yet" : recoveryLabel(m.recovery_score).toUpperCase();
-    $("recovery-state-big").style.color = noData ? "var(--text-faint)" : recColor;
+    $("recovery-state-big").textContent = hasRec ? recoveryLabel(recScore).toUpperCase() : "No data yet";
+    $("recovery-state-big").style.color = hasRec ? recColor : "var(--text-faint)";
   }
   if ($("recovery-coach")) {
-    const coach = noData ? "Wear your strap overnight to compute recovery." : (recoveryCoach(m.recovery_score) ?? "");
+    const coach = hasRec ? (recoveryCoach(recScore) ?? "") : "Wear your strap overnight to compute recovery.";
     $("recovery-coach").textContent = coach;
   }
 
@@ -834,24 +836,29 @@ async function loadSleep() {
     `<span><span class="swatch" style="background:${COLORS.stage[s]}"></span>${s}</span>`
   ).join("");
 
-  $("sleep-total").textContent = fmtHM(m.sleep_minutes);
-  $("sleep-performance").textContent = m.sleep_performance_pct ?? "—";
-  $("sleep-need-line").textContent = m.sleep_need_minutes
+  // Treat sleep_minutes ≤ 0 as "no real sleep data" (rollup writes zeros)
+  const hasSleep = m.sleep_minutes != null && m.sleep_minutes > 0;
+
+  $("sleep-total").textContent = hasSleep ? fmtHM(m.sleep_minutes) : "—";
+  $("sleep-performance").textContent = hasSleep ? (m.sleep_performance_pct ?? "—") : "—";
+  $("sleep-need-line").textContent = (hasSleep && m.sleep_need_minutes)
     ? `need ${fmtHM(m.sleep_need_minutes)}`
-    : "";
+    : (m.sleep_need_minutes ? `need ${fmtHM(m.sleep_need_minutes)}` : "");
   const debt = m.sleep_debt_minutes;
   $("sleep-debt").textContent = debt == null ? "—" : (debt / 60).toFixed(1);
-  $("sleep-consistency").textContent = m.sleep_consistency_pct ?? "—";
-  $("sleep-resp").textContent = m.respiratory_rate ?? "—";
-  $("sleep-spo2").textContent = m.avg_spo2 ?? "—";
+  $("sleep-consistency").textContent = hasSleep ? (m.sleep_consistency_pct ?? "—") : "—";
+  $("sleep-resp").textContent = hasSleep ? (m.respiratory_rate ?? "—") : "—";
+  $("sleep-spo2").textContent = hasSleep ? (m.avg_spo2 ?? "—") : "—";
 
-  // Quality score (composite)
-  const quality = data.quality || {};
+  // Quality score (composite) — suppress when no sleep
+  const quality = hasSleep ? (data.quality || {}) : {};
   if ($("sleep-quality")) {
     $("sleep-quality").textContent = quality.score ?? "—";
     if (quality.score != null) {
       const colorFor = (v) => v >= 80 ? COLORS.recGood : v >= 60 ? COLORS.recMid : COLORS.recBad;
       $("sleep-quality").style.color = colorFor(quality.score);
+    } else {
+      $("sleep-quality").style.color = "var(--text-faint)";
     }
     const labels = {
       performance: "Need fulfillment",
