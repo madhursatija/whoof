@@ -604,6 +604,20 @@ async function loadSleep() {
   $("sleep-resp").textContent = m.respiratory_rate ?? "—";
   $("sleep-spo2").textContent = m.avg_spo2 ?? "—";
 
+  // Bedtime / wake time: stored as local ISO 'YYYY-MM-DDTHH:MM', display as HH:MM.
+  function fmtLocalIso(iso) {
+    if (!iso) return "—";
+    const t = iso.slice(11, 16); // HH:MM part
+    if (!t) return "—";
+    try {
+      const [h, min] = t.split(":").map(Number);
+      const d = new Date(2000, 0, 1, h, min);
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch { return t; }
+  }
+  if ($("sleep-bedtime")) $("sleep-bedtime").textContent = fmtLocalIso(m.bedtime_local);
+  if ($("sleep-wake"))    $("sleep-wake").textContent    = fmtLocalIso(m.wake_local);
+
   // Stage breakdown bars
   const stages = [
     { k: "Deep",  v: m.deep_sleep_minutes  || 0, c: COLORS.stage.deep },
