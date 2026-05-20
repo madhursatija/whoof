@@ -101,8 +101,13 @@ that round-trips through `shortcuts://x-callback-url`.
   anomaly (< 95% / < 93%), sleep performance (< 70% / < 55%), and
   **Acute:Chronic Workload Ratio** (ACWR) — flags training spikes above 1.5×
   or detraining below 0.6× the chronic baseline, reducing injury risk.
-- **Weekly summary** — emoji-formatted 7-day recap in the Trends tab; the
-  top-3 personalised tag insights are appended automatically.
+- **Weekly summary with week-over-week comparison** — emoji-formatted 7-day
+  recap in the Trends tab. When prior-week data exists, ✅/⚠️ delta lines
+  show how recovery, HRV, resting HR, and sleep changed vs the previous 7
+  days. Top-3 personalised tag insights are appended automatically.
+- **Switchable metric heatmap calendar** — the 30-day calendar in the Trends
+  tab now has a metric picker (Recovery / Sleep performance / Strain / HRV).
+  HRV uses percentile-relative colouring to account for individual variation.
 - **Poincaré plot** — SD1/SD2 scatter from last night's RR intervals, rendered
   in the Recovery tab. Tells you at a glance whether short-term or long-term
   HRV is dominating.
