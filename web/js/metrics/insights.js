@@ -359,6 +359,132 @@ function sleepEfficiency(slice) {
   return null;
 }
 
+/**
+ * Deep sleep quality — flags when avg deep sleep is below healthy targets.
+ * Healthy range: 15–25% of total sleep time.
+ * Requires sleep_minutes and deep_sleep_minutes fields in daily_metrics.
+ */
+function deepSleepAlert(slice) {
+  const vals = slice
+    .map((m) => {
+      if (m.sleep_minutes == null || m.sleep_minutes < 60) return null;
+      if (m.deep_sleep_minutes == null) return null;
+      return m.deep_sleep_minutes / m.sleep_minutes;
+    })
+    .filter((v) => v != null);
+  if (vals.length < MIN_DAYS) return null;
+  const avg = mean(vals);
+  if (avg < 0.13) {
+    return {
+      id: 'deep-sleep-low',
+      severity: 'warn',
+      title: `Deep sleep low (${(avg * 100).toFixed(0)}%)`,
+      body: `Average deep sleep is only ${(avg * 100).toFixed(0)}% of total sleep — well below the 15–25% target. Deep sleep drives physical restoration, muscle repair, and immune function. Limit alcohol and reduce stress before bed.`,
+      metric: 'deep_sleep_minutes',
+      trend: 'down',
+    };
+  }
+  if (avg < 0.20) {
+    return {
+      id: 'deep-sleep-below-target',
+      severity: 'info',
+      title: `Deep sleep ${(avg * 100).toFixed(0)}% (below target)`,
+      body: `Average deep sleep is ${(avg * 100).toFixed(0)}% of total sleep. The healthy target is 15–25%. Cooler room temperature and consistent bedtimes can improve deep sleep proportion.`,
+      metric: 'deep_sleep_minutes',
+      trend: null,
+    };
+  }
+  return null;
+}
+
+/**
+ * REM sleep quality — flags when avg REM sleep is below healthy targets.
+ * Healthy range: 20–25% of total sleep time.
+ */
+function remSleepAlert(slice) {
+  const vals = slice
+    .map((m) => {
+      if (m.sleep_minutes == null || m.sleep_minutes < 60) return null;
+      if (m.rem_sleep_minutes == null) return null;
+      return m.rem_sleep_minutes / m.sleep_minutes;
+    })
+    .filter((v) => v != null);
+  if (vals.length < MIN_DAYS) return null;
+  const avg = mean(vals);
+  if (avg < 0.15) {
+    return {
+      id: 'rem-sleep-low',
+      severity: 'warn',
+      title: `REM sleep low (${(avg * 100).toFixed(0)}%)`,
+      body: `Average REM sleep is only ${(avg * 100).toFixed(0)}% of total sleep — below the 20–25% target. REM drives memory consolidation, emotional regulation, and cognitive performance. Alcohol, sleep aids, and irregular schedules suppress REM.`,
+      metric: 'rem_sleep_minutes',
+      trend: 'down',
+    };
+  }
+  if (avg < 0.20) {
+    return {
+      id: 'rem-sleep-below-target',
+      severity: 'info',
+      title: `REM sleep ${(avg * 100).toFixed(0)}% (below target)`,
+      body: `Average REM sleep is ${(avg * 100).toFixed(0)}% of total sleep. The healthy target is 20–25%. Consistent wake times and reduced caffeine after noon can help.`,
+      metric: 'rem_sleep_minutes',
+      trend: null,
+    };
+  }
+  return null;
+}
+
+/**
+ * HRV vs personal baseline — computes a rolling baseline from older data
+ * and flags when current HRV has dropped significantly below it.
+ * Baseline: days 7–60 of the chrono window. Current: most recent 3 days.
+ */
+function hrvBaselineAlert(chrono) {
+  // Need enough history to establish a meaningful baseline
+  if (chrono.length < 10) return null;
+  const baselineVals = chrono
+    .slice(0, chrono.length - 3)  // everything except most recent 3
+    .map((m) => m.rmssd_ms)
+    .filter((v) => v != null);
+  if (baselineVals.length < 7) return null;
+  const baselineMean = mean(baselineVals);
+  const baselineVariance =
+    baselineVals.reduce((s, v) => s + (v - baselineMean) ** 2, 0) / baselineVals.length;
+  const baselineSd = Math.sqrt(baselineVariance);
+  if (!baselineSd || baselineSd < 1) return null; // flat baseline — skip
+
+  // Current = average of the 3 most recent chrono entries
+  const recentVals = chrono
+    .slice(-3)
+    .map((m) => m.rmssd_ms)
+    .filter((v) => v != null);
+  if (!recentVals.length) return null;
+  const current = mean(recentVals);
+  const zScore = (current - baselineMean) / baselineSd;
+
+  if (zScore <= -2.0) {
+    return {
+      id: 'hrv-below-baseline',
+      severity: 'warn',
+      title: `HRV well below baseline (${Math.round(current)} ms)`,
+      body: `Recent HRV (${Math.round(current)} ms) is ${Math.abs(zScore).toFixed(1)}σ below your personal baseline (${Math.round(baselineMean)} ms). This level of suppression suggests significant accumulated stress or early illness.`,
+      metric: 'rmssd_ms',
+      trend: 'down',
+    };
+  }
+  if (zScore <= -1.0) {
+    return {
+      id: 'hrv-below-baseline',
+      severity: 'info',
+      title: `HRV below baseline (${Math.round(current)} ms)`,
+      body: `Recent HRV (${Math.round(current)} ms) is ${Math.abs(zScore).toFixed(1)}σ below your personal baseline (${Math.round(baselineMean)} ms). Prioritise recovery — sleep, hydration, and stress management.`,
+      metric: 'rmssd_ms',
+      trend: 'down',
+    };
+  }
+  return null;
+}
+
 function spo2Alert(slice) {
   const vals = slice.slice(0, 3).map((m) => m.avg_spo2).filter((v) => v != null);
   if (vals.length < 2) return null;
@@ -410,9 +536,12 @@ export function generateInsights(metrics, { days = 14 } = {}) {
     strainRecoveryBalance(slice),
     hrvTrend(chrono),
     rhrTrend(chrono),
+    hrvBaselineAlert(chrono),
     sleepDebt(slice[0]),
     sleepDurationTrend(chrono),
     sleepConsistency(slice),
+    deepSleepAlert(slice),
+    remSleepAlert(slice),
     skinTempAlert(slice),
     respiratoryRateAlert(slice),
     spo2Alert(slice),

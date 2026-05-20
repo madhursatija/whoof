@@ -390,3 +390,194 @@ describe('ACWR insights', () => {
     expect(ins.find((i) => i.id?.startsWith('acwr'))).toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Training monotony
+// ---------------------------------------------------------------------------
+
+describe('Training monotony insights', () => {
+  /** Build 7 newest→oldest rows with strain values (oldest to newest in the array for chrono order). */
+  function makeMonotonyMetrics(strains) {
+    // strains is oldest→newest; metrics are newest→oldest, so reverse
+    return [...strains].reverse().map((s) => ({
+      ...makeMetrics([{}])[0],
+      strain_score: s,
+    }));
+  }
+
+  it('flags monotony > 2.5 as info', () => {
+    // All 12.0 — no variation → very high monotony
+    const metrics = makeMonotonyMetrics([12, 12, 12, 12, 12, 12, 12]);
+    const ins = generateInsights(metrics);
+    const alert = ins.find((i) => i.id === 'training-monotony-high');
+    expect(alert).toBeDefined();
+    expect(alert.severity).toBe('info');
+  });
+
+  it('does not flag varied training (hard/easy pattern)', () => {
+    // Alternating hard/easy — high variability → low monotony
+    const metrics = makeMonotonyMetrics([4, 16, 4, 16, 4, 16, 4]);
+    const ins = generateInsights(metrics);
+    expect(ins.find((i) => i.id === 'training-monotony-high')).toBeUndefined();
+  });
+
+  it('does not flag low-strain windows (avg < 4)', () => {
+    const metrics = makeMonotonyMetrics([2, 2, 2, 2, 2, 2, 2]);
+    const ins = generateInsights(metrics);
+    expect(ins.find((i) => i.id === 'training-monotony-high')).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Deep sleep alert
+// ---------------------------------------------------------------------------
+
+describe('Deep sleep alert', () => {
+  /** Build metrics with given deep proportion (0–1) of 450 min total sleep. */
+  function makeDeepMetrics(deepFraction, n = 7) {
+    return makeMetrics(
+      Array(n).fill({
+        sleep_minutes: 450,
+        deep_sleep_minutes: Math.round(450 * deepFraction),
+      }),
+    );
+  }
+
+  it('fires warn when avg deep < 13%', () => {
+    const metrics = makeDeepMetrics(0.10);
+    const ins = generateInsights(metrics);
+    const alert = ins.find((i) => i.id === 'deep-sleep-low');
+    expect(alert).toBeDefined();
+    expect(alert.severity).toBe('warn');
+  });
+
+  it('fires info when avg deep is 13–20%', () => {
+    const metrics = makeDeepMetrics(0.16);
+    const ins = generateInsights(metrics);
+    const alert = ins.find((i) => i.id === 'deep-sleep-below-target');
+    expect(alert).toBeDefined();
+    expect(alert.severity).toBe('info');
+  });
+
+  it('does not fire when deep sleep >= 20%', () => {
+    const metrics = makeDeepMetrics(0.22);
+    const ins = generateInsights(metrics);
+    expect(ins.find((i) => i.id?.startsWith('deep-sleep'))).toBeUndefined();
+  });
+
+  it('skips rows where sleep_minutes is null', () => {
+    // Only 2 rows have data — below MIN_DAYS
+    const metrics = makeMetrics([
+      { sleep_minutes: null, deep_sleep_minutes: null },
+      { sleep_minutes: null, deep_sleep_minutes: null },
+      { sleep_minutes: 450, deep_sleep_minutes: 45 },
+      { sleep_minutes: 450, deep_sleep_minutes: 45 },
+    ]);
+    const ins = generateInsights(metrics);
+    // Only 2 valid rows — should not fire (need MIN_DAYS = 3)
+    expect(ins.find((i) => i.id?.startsWith('deep-sleep'))).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// REM sleep alert
+// ---------------------------------------------------------------------------
+
+describe('REM sleep alert', () => {
+  function makeRemMetrics(remFraction, n = 7) {
+    return makeMetrics(
+      Array(n).fill({
+        sleep_minutes: 450,
+        rem_sleep_minutes: Math.round(450 * remFraction),
+      }),
+    );
+  }
+
+  it('fires warn when avg REM < 15%', () => {
+    const metrics = makeRemMetrics(0.10);
+    const ins = generateInsights(metrics);
+    const alert = ins.find((i) => i.id === 'rem-sleep-low');
+    expect(alert).toBeDefined();
+    expect(alert.severity).toBe('warn');
+  });
+
+  it('fires info when avg REM is 15–20%', () => {
+    const metrics = makeRemMetrics(0.17);
+    const ins = generateInsights(metrics);
+    const alert = ins.find((i) => i.id === 'rem-sleep-below-target');
+    expect(alert).toBeDefined();
+    expect(alert.severity).toBe('info');
+  });
+
+  it('does not fire when REM >= 20%', () => {
+    const metrics = makeRemMetrics(0.23);
+    const ins = generateInsights(metrics);
+    expect(ins.find((i) => i.id?.startsWith('rem-sleep'))).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HRV vs personal baseline
+// ---------------------------------------------------------------------------
+
+describe('HRV baseline alert', () => {
+  /**
+   * Build newest→oldest metric array.
+   * baselineHrv: value for days [3, n)
+   * recentHrv:   value for most recent 3 days
+   */
+  function makeHrvBaseline(baselineHrv, recentHrv, totalDays = 20) {
+    return makeMetrics(
+      Array(totalDays)
+        .fill(null)
+        .map((_, i) => ({ rmssd_ms: i < 3 ? recentHrv : baselineHrv })),
+    );
+  }
+
+  it('fires warn when HRV is 2+ SD below baseline', () => {
+    // Baseline: 60ms ± ~5ms (varied to create meaningful SD)
+    const metrics = makeMetrics([
+      { rmssd_ms: 30 }, { rmssd_ms: 30 }, { rmssd_ms: 30 }, // recent (very low)
+      ...Array(17)
+        .fill(null)
+        .map((_, i) => ({ rmssd_ms: 55 + (i % 5) })), // baseline ~57ms
+    ]);
+    const ins = generateInsights(metrics);
+    const alert = ins.find((i) => i.id === 'hrv-below-baseline');
+    expect(alert).toBeDefined();
+    expect(alert.severity).toBe('warn');
+  });
+
+  it('fires info when HRV is ~1 SD below baseline', () => {
+    // Baseline ~55ms, recent ~48ms — ~1.2 SD below
+    const metrics = makeMetrics([
+      { rmssd_ms: 48 }, { rmssd_ms: 48 }, { rmssd_ms: 48 },
+      ...Array(17)
+        .fill(null)
+        .map((_, i) => ({ rmssd_ms: 54 + (i % 5) })),
+    ]);
+    const ins = generateInsights(metrics);
+    const alert = ins.find((i) => i.id === 'hrv-below-baseline');
+    expect(alert).toBeDefined();
+  });
+
+  it('does not fire when HRV is at baseline', () => {
+    const metrics = makeHrvBaseline(55, 55, 20);
+    const ins = generateInsights(metrics);
+    expect(ins.find((i) => i.id === 'hrv-below-baseline')).toBeUndefined();
+  });
+
+  it('does not fire with fewer than 10 days of data', () => {
+    const metrics = makeHrvBaseline(55, 30, 8);
+    const ins = generateInsights(metrics);
+    expect(ins.find((i) => i.id === 'hrv-below-baseline')).toBeUndefined();
+  });
+
+  it('does not fire when baseline is flat (sd < 1)', () => {
+    // All baseline identical → sd = 0 → skip
+    const metrics = makeHrvBaseline(55, 30, 20);
+    const ins = generateInsights(metrics);
+    // Flat baseline → guard kicks in, no alert
+    expect(ins.find((i) => i.id === 'hrv-below-baseline')).toBeUndefined();
+  });
+});
