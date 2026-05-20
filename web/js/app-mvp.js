@@ -1404,11 +1404,12 @@ async function renderRecoveryCal() {
       const score = byDate[iso] ?? null;
       const label = score != null ? `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}: ${Math.round(score)}%` : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
       const isToday = i === 0;
-      cells.push(`<div title="${label}" style="
+      cells.push(`<div title="${label}" data-cal-date="${iso}" style="
         width:28px; height:28px; border-radius:5px; flex-shrink:0;
         background:${recoveryColor(score)};
         opacity:${score == null ? 0.35 : 1};
         box-sizing:border-box;
+        cursor:pointer;
         border: ${isToday ? '2px solid var(--fg)' : '2px solid transparent'};
       "></div>`);
     }
@@ -1433,6 +1434,13 @@ async function renderRecoveryCal() {
         ${cells.join('')}
       </div>
       ${legend}`;
+
+    // Wire click-to-navigate: clicking a cell jumps to Recovery tab for that day.
+    el.querySelectorAll('[data-cal-date]').forEach((cell) => {
+      cell.addEventListener('click', () => {
+        window.dispatchEvent(new CustomEvent('whoop-browse-recovery', { detail: { date: cell.dataset.calDate } }));
+      });
+    });
   } catch (err) {
     console.warn('[recovery-cal] render failed', err);
   }

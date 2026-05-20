@@ -870,6 +870,13 @@ function init() {
   // Allow other modules (app-mvp.js, etc.) to trigger a re-render when they
   // mutate IndexedDB.
   window.addEventListener("whoop-data-changed", () => refreshAll());
+  // Recovery calendar cell click: jump to Recovery tab for that date.
+  // Set _browseDate AFTER setTab because setTab resets it on tab switch.
+  window.addEventListener("whoop-browse-recovery", (e) => {
+    setTab("recovery");          // switches tab (resets _browseDate to null)
+    _browseDate = e.detail.date; // override with the clicked date
+    loadRecovery().catch(() => {}); // re-render with the overridden date
+  });
 }
 
 // Expose so the BLE/seed module can poke us after writing data.
