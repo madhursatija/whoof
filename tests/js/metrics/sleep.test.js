@@ -17,6 +17,7 @@ import {
   sleepDebtMinutes7d,
   sleepConsistencyPct,
   respiratoryRate,
+  sleepQualityScore,
 } from '../../../web/js/metrics/sleep.js';
 
 // ---------------------------------------------------------------------------
@@ -241,5 +242,90 @@ describe('respiratoryRate', () => {
 
   it('returns null when the window is missing', () => {
     expect(respiratoryRate([], null)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// sleepQualityScore
+// ---------------------------------------------------------------------------
+
+describe('sleepQualityScore', () => {
+  it('returns null score for null/empty input', () => {
+    expect(sleepQualityScore(null).score).toBeNull();
+    expect(sleepQualityScore({}).score).toBeNull();
+  });
+
+  it('returns ~100 for a textbook-perfect night', () => {
+    const m = {
+      sleep_minutes: 480,
+      wake_minutes: 0,
+      deep_sleep_minutes: 120,  // 25%
+      rem_sleep_minutes: 120,   // 25% — total 50% restorative
+      sleep_performance_pct: 100,
+      sleep_consistency_pct: 100,
+      sleep_debt_minutes: 0,
+    };
+    const { score, breakdown } = sleepQualityScore(m);
+    expect(score).toBe(100);
+    expect(breakdown.performance).toBe(100);
+    expect(breakdown.efficiency).toBe(100);
+    expect(breakdown.restorative).toBe(100);
+    expect(breakdown.debt).toBe(100);
+  });
+
+  it('penalises low restorative ratio', () => {
+    const base = {
+      sleep_minutes: 480,
+      wake_minutes: 0,
+      sleep_performance_pct: 100,
+      sleep_consistency_pct: 100,
+      sleep_debt_minutes: 0,
+    };
+    const good = sleepQualityScore({ ...base, deep_sleep_minutes: 100, rem_sleep_minutes: 100 }); // 41% — caps at 100
+    const bad  = sleepQualityScore({ ...base, deep_sleep_minutes: 40,  rem_sleep_minutes: 40  }); // 16.7% → 41/100
+    expect(good.score).toBeGreaterThan(bad.score);
+    expect(bad.breakdown.restorative).toBeLessThan(50);
+  });
+
+  it('penalises low efficiency (lots of waking)', () => {
+    const base = {
+      deep_sleep_minutes: 90,
+      rem_sleep_minutes: 100,
+      sleep_performance_pct: 100,
+      sleep_consistency_pct: 100,
+      sleep_debt_minutes: 0,
+    };
+    const efficient   = sleepQualityScore({ ...base, sleep_minutes: 480, wake_minutes: 0   });
+    const inefficient = sleepQualityScore({ ...base, sleep_minutes: 480, wake_minutes: 240 }); // 67% efficiency
+    expect(efficient.score).toBeGreaterThan(inefficient.score);
+    expect(inefficient.breakdown.efficiency).toBe(67);
+  });
+
+  it('decays debt subscore linearly to 0 at 5h debt', () => {
+    const base = {
+      sleep_minutes: 480, wake_minutes: 0,
+      deep_sleep_minutes: 100, rem_sleep_minutes: 100,
+      sleep_performance_pct: 100, sleep_consistency_pct: 100,
+    };
+    expect(sleepQualityScore({ ...base, sleep_debt_minutes: 0   }).breakdown.debt).toBe(100);
+    expect(sleepQualityScore({ ...base, sleep_debt_minutes: 150 }).breakdown.debt).toBe(50);
+    expect(sleepQualityScore({ ...base, sleep_debt_minutes: 300 }).breakdown.debt).toBe(0);
+    expect(sleepQualityScore({ ...base, sleep_debt_minutes: 500 }).breakdown.debt).toBe(0);
+  });
+
+  it('re-normalises when some inputs are missing', () => {
+    // Only performance + consistency present; score is weighted-avg of those two
+    const m = { sleep_performance_pct: 80, sleep_consistency_pct: 60 };
+    const { score, breakdown } = sleepQualityScore(m);
+    // (30*80 + 15*60) / (30 + 15) = (2400 + 900) / 45 = 73.33 → 73
+    expect(score).toBe(73);
+    expect(Object.keys(breakdown).sort()).toEqual(['consistency', 'performance']);
+  });
+
+  it('clips out-of-range inputs to [0,100]', () => {
+    const m = { sleep_performance_pct: 150, sleep_consistency_pct: -10 };
+    const { breakdown } = sleepQualityScore(m);
+    expect(breakdown.performance).toBe(100);
+    expect(breakdown.consistency).toBe(0);
   });
 });

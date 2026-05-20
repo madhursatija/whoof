@@ -717,6 +717,26 @@ async function loadSleep() {
   $("sleep-resp").textContent = m.respiratory_rate ?? "—";
   $("sleep-spo2").textContent = m.avg_spo2 ?? "—";
 
+  // Quality score (composite)
+  const quality = data.quality || {};
+  if ($("sleep-quality")) {
+    $("sleep-quality").textContent = quality.score ?? "—";
+    if (quality.score != null) {
+      const colorFor = (v) => v >= 80 ? COLORS.recGood : v >= 60 ? COLORS.recMid : COLORS.recBad;
+      $("sleep-quality").style.color = colorFor(quality.score);
+    }
+    const labels = {
+      performance: "Need fulfillment",
+      efficiency:  "Efficiency",
+      restorative: "Restorative",
+      consistency: "Consistency",
+      debt:        "Debt",
+    };
+    $("sleep-quality-breakdown").innerHTML = Object.entries(quality.breakdown || {})
+      .map(([k, v]) => `<div>${labels[k] || k}</div><div style="text-align:right; font-weight:600; color:var(--fg2);">${v}</div>`)
+      .join("");
+  }
+
   // Bedtime / wake time: stored as local ISO 'YYYY-MM-DDTHH:MM', display as HH:MM.
   function fmtLocalIso(iso) {
     if (!iso) return "—";

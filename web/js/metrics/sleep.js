@@ -365,6 +365,72 @@ export function sleepPerformance(asleepMinutes, needMinutes) {
 }
 
 /**
+ * Composite Sleep Quality Score (0–100). Combines five subscores into a
+ * single number so the user can compare nights at a glance:
+ *
+ *   30%  performance   — how much of sleep need was met
+ *   20%  efficiency    — asleep / time-in-bed (penalises restless sleep)
+ *   20%  restorative   — (deep + rem) / total, normalised to a 40% target
+ *   15%  consistency   — sleep schedule regularity
+ *   15%  debt penalty  — 0 sleep debt → 100, decays to 0 at 5h of debt
+ *
+ * Each subscore is clipped to 0–100. Missing inputs are skipped and the
+ * remaining weights re-normalised so the output is still on a 0–100 scale.
+ *
+ * @param {Object} m  - row-like object with the fields below.
+ * @param {number} [m.sleep_minutes]
+ * @param {number} [m.wake_minutes]
+ * @param {number} [m.deep_sleep_minutes]
+ * @param {number} [m.rem_sleep_minutes]
+ * @param {number} [m.sleep_performance_pct]
+ * @param {number} [m.sleep_consistency_pct]
+ * @param {number} [m.sleep_debt_minutes]
+ * @returns {{score:number|null, breakdown:Object}}
+ */
+export function sleepQualityScore(m) {
+  if (!m) return { score: null, breakdown: {} };
+
+  const subscores = [];
+  const clip = (v) => Math.max(0, Math.min(100, v));
+
+  // Performance — need fulfillment
+  if (m.sleep_performance_pct != null) {
+    subscores.push({ key: 'performance', weight: 30, value: clip(m.sleep_performance_pct) });
+  }
+  // Efficiency — asleep / time-in-bed
+  if (m.sleep_minutes != null && m.wake_minutes != null) {
+    const tib = m.sleep_minutes + m.wake_minutes;
+    if (tib > 0) {
+      subscores.push({ key: 'efficiency', weight: 20, value: clip(100 * m.sleep_minutes / tib) });
+    }
+  }
+  // Restorative — (deep+rem)/total, target 40%
+  if (m.sleep_minutes != null && m.sleep_minutes > 0 &&
+      m.deep_sleep_minutes != null && m.rem_sleep_minutes != null) {
+    const ratio = (m.deep_sleep_minutes + m.rem_sleep_minutes) / m.sleep_minutes;
+    subscores.push({ key: 'restorative', weight: 20, value: clip(100 * Math.min(1, ratio / 0.40)) });
+  }
+  // Consistency
+  if (m.sleep_consistency_pct != null) {
+    subscores.push({ key: 'consistency', weight: 15, value: clip(m.sleep_consistency_pct) });
+  }
+  // Debt penalty
+  if (m.sleep_debt_minutes != null) {
+    const debt = Math.max(0, m.sleep_debt_minutes);
+    subscores.push({ key: 'debt', weight: 15, value: clip(100 * Math.max(0, 1 - debt / 300)) });
+  }
+
+  if (!subscores.length) return { score: null, breakdown: {} };
+
+  const totalWeight = subscores.reduce((a, s) => a + s.weight, 0);
+  const weighted = subscores.reduce((a, s) => a + s.weight * s.value, 0);
+  const score = Math.round(weighted / totalWeight);
+  const breakdown = {};
+  for (const s of subscores) breakdown[s.key] = Math.round(s.value);
+  return { score, breakdown };
+}
+
+/**
  * Sum of max(0, need - asleep) across up to 7 recent days.
  *
  * @param {Array<number>} asleepHistory

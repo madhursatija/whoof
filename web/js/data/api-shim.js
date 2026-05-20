@@ -15,6 +15,7 @@ import {
 } from './queries.js';
 import { rollupDay, recomputeRecent, rollupMissing } from '../metrics/rollup.js';
 import { maxHr } from '../metrics/zones.js';
+import { sleepQualityScore } from '../metrics/sleep.js';
 
 const VALID_TREND_METRICS = new Set([
   'rmssd_ms', 'resting_hr', 'recovery_score', 'strain_score',
@@ -185,9 +186,11 @@ async function apiSleep(dayIso) {
       light_sleep_minutes: r.light_sleep_minutes ?? null,
       respiratory_rate:    r.respiratory_rate ?? null,
     }));
+  const quality = sleepQualityScore(m);
   return {
     date: day,
     summary: m ?? null,
+    quality,
     stages: stages.map((s) => ({
       start: toLocalIso(s.start_utc),
       end: toLocalIso(s.end_utc),
