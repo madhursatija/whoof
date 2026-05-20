@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MS Vitality</title>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#1a1a2e" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Vitality" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand">MS <span class="brand-accent">VITALITY</span></div>
+
+  <nav class="tabs">
+    <button class="tab" data-tab="overview" data-icon="◐">Overview</button>
+    <button class="tab" data-tab="recovery" data-icon="●">Recovery</button>
+    <button class="tab" data-tab="sleep" data-icon="☾">Sleep</button>
+    <button class="tab" data-tab="strain" data-icon="↟">Strain</button>
+    <button class="tab" data-tab="trends" data-icon="∿">Trends</button>
+    <button class="tab" data-tab="live" data-icon="●">Live</button>
+  </nav>
+
+  <!-- BLE connection card inside sidebar -->
+  <div id="mvp-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+      <strong style="font-weight:600; letter-spacing:0.5px;">Bluetooth</strong>
+      <span id="mvp-status" style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;">disconnected</span>
+    </div>
+    
+    <div style="display:flex; align-items:baseline; gap:4px; margin:4px 0 2px 0;">
+      <span id="mvp-hr" style="font-size:24px; font-weight:700; line-height:1; letter-spacing:-0.5px;">—</span>
+      <span style="font-size:12px; color:var(--muted);">bpm</span>
+    </div>
+    
+    <div style="display:flex; justify-content:space-between; margin: 8px 0 10px 0; padding-top: 8px; border-top: 1px solid var(--border);">
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <span style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">SpO₂</span>
+        <span id="mvp-spo2" style="font-size:14px; font-weight:600; color:var(--fg); font-variant-numeric:tabular-nums;">—</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <span style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Temp</span>
+        <span id="mvp-temp" style="font-size:14px; font-weight:600; color:var(--fg); font-variant-numeric:tabular-nums;">—</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:2px; text-align:right;">
+        <span style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">RR Int</span>
+        <span id="mvp-rr" style="font-size:14px; font-weight:600; color:var(--fg); font-variant-numeric:tabular-nums;">—</span>
+      </div>
+    </div>
+    
+    <div style="font-size:11px; color:var(--muted);">
+      Session: <span id="mvp-count" style="font-variant-numeric:tabular-nums; font-weight:600;">0</span> pkts
+    </div>
+    
+    <div id="mvp-error" style="font-size:11px; color:var(--rec-bad); display:none; word-break:break-word;"></div>
+    
+    <div style="display:flex; gap:8px; font-size:11px; color:var(--muted); margin: 2px 0;">
+      <span id="mvp-wrist" title="wrist worn">⚪ Wrist</span>
+      <span id="mvp-charge" title="charging state">⚪ Charge</span>
+      <span id="mvp-rtc" title="strap clock sync">⚪ Clock</span>
+    </div>
+
+    <button id="mvp-connect">Connect Whoop</button>
+    <button id="mvp-disconnect" style="display:none;">Disconnect</button>
+    <button id="mvp-sync-now" style="display:none; font-size:10px; margin-top:2px;">Sync from strap now</button>
+    <button id="mvp-capture" style="display:none; font-size:10px; margin-top:2px;">📸 Capture raw packets</button>
+
+    <details id="mvp-diag-details" style="display:none; font-size:11px; margin-top:4px;">
+      <summary style="cursor:pointer; color:var(--muted);">Diagnostics</summary>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:4px;">
+        <button id="diag-hello" style="font-size:10px;">Hello</button>
+        <button id="diag-battery" style="font-size:10px;">Battery</button>
+        <button id="diag-clock" style="font-size:10px;">Clock</button>
+        <button id="diag-range" style="font-size:10px;">Data range</button>
+        <button id="diag-haptic" style="font-size:10px;">Haptic 🔔</button>
+        <button id="diag-imu" style="font-size:10px;">Raw IMU</button>
+        <button id="diag-batt-ext" style="font-size:10px;">Batt extended</button>
+        <button id="diag-hr-profile" style="font-size:10px;">HR profile</button>
+      </div>
+      <div id="diag-output" style="font-size:10px; color:var(--muted); margin-top:4px; min-height:1em; white-space:pre-wrap; max-height:60px; overflow-y:auto; font-family:monospace;"></div>
+    </details>
+
+    <details id="mvp-alarm-details" style="display:none; font-size:11px; margin-top:4px;">
+      <summary style="cursor:pointer; color:var(--muted);">⏰ Smart alarm</summary>
+      <div style="display:flex; gap:4px; align-items:center; margin-top:4px;">
+        <input id="alarm-time" type="time" style="font-size:11px; flex:1;"/>
+        <button id="alarm-set" style="font-size:10px;">Set</button>
+        <button id="alarm-disable" style="font-size:10px;">Off</button>
+        <button id="alarm-run" style="font-size:10px;" title="Test fire">▶</button>
+      </div>
+      <div id="alarm-status" style="font-size:10px; color:var(--muted); margin-top:2px;"></div>
+    </details>
+
+    <details id="mvp-captures-details" style="font-size:11px; margin-top:4px;">
+      <summary style="cursor:pointer; color:var(--muted);">📚 Saved captures <span id="captures-count" style="font-variant-numeric:tabular-nums;">(0)</span></summary>
+      <div id="captures-list" style="font-size:10px; color:var(--muted); margin-top:4px; max-height:120px; overflow-y:auto;"></div>
+    </details>
+
+    <details id="mvp-log-details" style="display:none; font-size:11px; margin-top:4px;">
+      <summary style="cursor:pointer; color:var(--muted);">Console log <span id="mvp-log-count" style="font-variant-numeric:tabular-nums;">(0)</span></summary>
+      <div id="mvp-log-body" style="font-size:10px; color:var(--muted); margin-top:4px; max-height:120px; overflow-y:auto; font-family:monospace; white-space:pre-wrap; word-break:break-all;"></div>
+    </details>
+
+    <div id="mvp-stats" style="display:none; font-size:10px; color:var(--muted); margin-top:4px; justify-content:space-between;">
+      <span>RR coverage: <span id="mvp-rr-coverage" style="font-variant-numeric:tabular-nums; color:var(--fg);">—</span></span>
+      <span>Pkts/s: <span id="mvp-pkt-rate" style="font-variant-numeric:tabular-nums; color:var(--fg);">—</span></span>
+    </div>
+
+    <div id="mvp-health" style="font-size:10px; color:var(--muted); margin-top:4px; cursor:pointer;" title="Click for full data integrity report">
+      <span id="mvp-health-dot">⚪</span> Data: <span id="mvp-health-msg">—</span>
+    </div>
+    
+    <div style="border-top:1px solid var(--border); margin:4px 0 2px 0;"></div>
+    
+    <div style="display:flex; gap:4px; flex-wrap:wrap;">
+      <button id="mvp-export" title="Export all data as JSON">JSON</button>
+      <button id="mvp-export-samples-csv" style="font-size:10px;" title="Export raw samples as CSV">Samples CSV</button>
+      <button id="mvp-export-daily-csv" style="font-size:10px;" title="Export daily metrics as CSV">Daily CSV</button>
+      <button id="mvp-export-journal-csv" style="font-size:10px;" title="Export journal entries as CSV">Journal CSV</button>
+      <button id="mvp-import">Import</button>
+      <button id="mvp-reset" title="Clear all local data and reseed 14 days of demo" style="font-size:10px;">Reset</button>
+    </div>
+    <input id="mvp-import-file" type="file" accept="application/json" style="display:none;"/>
+    <div id="mvp-data-status" style="font-size:10px; color:var(--muted); min-height:1em; text-align:center;"></div>
+
+    <div style="border-top:1px solid var(--border); margin:6px 0 2px 0; padding-top:6px;">
+      <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:3px;">Apple Health</div>
+      <div style="font-size:11px; display:flex; justify-content:space-between;">
+        <span>Weight:</span>
+        <span id="mvp-weight" style="font-weight:600; font-variant-numeric:tabular-nums;">—</span>
+      </div>
+      <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;">
+        <button id="mvp-pull-weight" style="font-size:10px;">📱 iPhone</button>
+        <button id="mvp-scale" style="font-size:10px;">⚖️ Scale</button>
+        <button id="mvp-manual-weight" style="font-size:10px;">✎</button>
+        <button id="mvp-health-setup" style="font-size:10px;">Setup…</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Apple Health setup modal -->
+  <div id="health-setup" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--bg); color:var(--fg); padding:24px; max-width:520px; border:1px solid var(--border); border-radius:8px;">
+      <h2 style="margin-top:0;">Apple Health Setup</h2>
+      <p style="font-size:13px; line-height:1.5; color:var(--muted);">
+        Sync weight (and other Health metrics) from iPhone via the
+        <a href="https://www.healthyapps.dev/health-auto-export" target="_blank" style="color:var(--fg);">Health Auto Export</a>
+        app:
+      </p>
+      <ol style="font-size:13px; line-height:1.6;">
+        <li>Install <strong>Health Auto Export</strong> on your iPhone.</li>
+        <li>Open the app → <strong>Automations → REST API</strong>.</li>
+        <li>Add a new automation, paste this URL:
+          <code id="mvp-ingest-url" style="display:block; padding:6px; background:var(--card); margin:4px 0; word-break:break-all; font-size:12px;"></code>
+        </li>
+        <li>Pick metrics: <em>Body Mass, Height, Resting Heart Rate, VO2 Max</em>.</li>
+        <li>Save. Run <code>./run.sh dash --host 0.0.0.0</code> on this Mac so iPhone can reach it.</li>
+      </ol>
+      <p style="font-size:12px; color:var(--muted);">Or for an instant pull, install the <strong>WhoopPullWeight</strong> shortcut and tap "Pull from iPhone".</p>
+      <button id="mvp-health-close" style="float:right;">Close</button>
+    </div>
+  </div>
+
+  <button class="settings-btn" id="open-settings" style="margin-top:0;">⚙ Settings</button>
+  <div class="status-line" id="status-line">…</div>
+</aside>
+
+<main class="content">
+  <!-- Persistent top bar matching premium design -->
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <div class="location-badge">
+        <span class="pin-icon">📍</span> Seattle, United States
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <div class="notification-badge">
+        <span class="bell-icon">🔔</span>
+        <span class="badge-count">2</span>
+      </div>
+      <div class="user-profile">
+        <div class="avatar">MS</div>
+        <div class="user-info">
+          <div class="user-name">Madhur Satija <span class="chevron">▼</span></div>
+          <div class="user-email">madhur@satija.com</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── OVERVIEW ─────────────────────────────────────────────── -->
+  <section class="tab-panel" data-panel="overview">
+    <header class="panel-header">
+      <div>
+        <h1 class="welcome-text">Health Overview</h1>
+        <div class="panel-subtitle">Take control of your health today!</div>
+      </div>
+      <span class="panel-date" id="overview-date"></span>
+    </header>
+    <div class="grid grid-overview">
+      <div class="card card-sleep">
+        <div class="card-eyebrow">Sleep</div>
+        <div class="ring-wrap"><svg id="sleep-ring" viewBox="0 0 150 150"></svg></div>
+        <div class="card-meta-label" id="sleep-perf">—</div>
+      </div>
+
+      <div class="card card-recovery">
+        <div class="card-eyebrow">Recovery</div>
+        <div class="ring-wrap"><svg id="recovery-ring" viewBox="0 0 150 150"></svg></div>
+        <div class="card-meta-label" id="recovery-meta">—</div>
+      </div>
+
+      <div class="card card-strain">
+        <div class="card-eyebrow">Day Strain</div>
+        <div class="ring-wrap"><svg id="strain-ring" viewBox="0 0 150 150"></svg></div>
+        <div class="card-meta-label" id="strain-meta">—</div>
+      </div>
+
+      <div class="card card-current">
+        <div class="card-eyebrow">Now</div>
+        <div class="now-hr"><span id="now-hr">—</span><span class="unit">bpm</span></div>
+        <div class="now-grid">
+          <div><span class="lbl">SpO₂</span><span id="now-spo2">—</span></div>
+          <div><span class="lbl">Skin</span><span id="now-temp">—</span></div>
+          <div><span class="lbl">Battery</span><span id="now-battery">—</span></div>
+          <div><span class="lbl">Ago</span><span id="now-ago">—</span></div>
+        </div>
+      </div>
+
+      <div class="card card-workouts span-2">
+        <div class="card-eyebrow">Recent activity</div>
+        <div class="workout-list" id="overview-workouts"></div>
+      </div>
+
+      <div class="card card-plan span-2" id="plan-card">
+        <div class="card-eyebrow">Today's plan</div>
+        <div id="plan-zone" style="font-size:28px; margin:6px 0 2px 0;">—</div>
+        <div id="plan-label" style="font-size:16px; font-weight:700; color:var(--fg); margin-bottom:4px;">—</div>
+        <div id="plan-message" style="font-size:11px; color:var(--muted); line-height:1.5; white-space:pre-line;">Connect your Whoop to see today's recommendation.</div>
+        <div id="plan-target" style="font-size:10px; color:var(--muted); margin-top:6px;"></div>
+      </div>
+
+      <div class="card card-insights span-2" id="insights-card" style="display:none;">
+        <div class="card-eyebrow">Health insights</div>
+        <div id="insights-list" style="display:flex; flex-direction:column; gap:8px; margin-top:4px;"></div>
+      </div>
+
+      <div class="card card-bigchart span-4">
+        <div class="card-eyebrow">Heart rate · today</div>
+        <div class="chart-wrap"><canvas id="hr-today"></canvas></div>
+      </div>
+
+      <div class="card span-4" id="journal-card">
+        <div class="card-eyebrow">Activity journal</div>
+        <div style="display:flex; gap:6px; align-items:flex-start; margin-top:6px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:200px;">
+            <div style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:6px;" id="journal-tags">
+              <button class="journal-tag" data-tag="alcohol" title="Alcohol consumed">🍺 Alcohol</button>
+              <button class="journal-tag" data-tag="illness" title="Sick or unwell">🤒 Illness</button>
+              <button class="journal-tag" data-tag="stress" title="High mental or emotional stress">😰 Stress</button>
+              <button class="journal-tag" data-tag="travel" title="Travel or time zone change">✈️ Travel</button>
+              <button class="journal-tag" data-tag="race" title="Race or competition">🏆 Race</button>
+              <button class="journal-tag" data-tag="goodsleep" title="Unusually good sleep night">💤 Good sleep</button>
+              <button class="journal-tag" data-tag="hardworkout" title="Hard training session">💪 Hard workout</button>
+              <button class="journal-tag" data-tag="caffeine" title="Late caffeine (after 2 pm)">☕ Late caffeine</button>
+              <button class="journal-tag" data-tag="meditation" title="Meditation or breathwork session">🧘 Meditation</button>
+              <button class="journal-tag" data-tag="cold" title="Cold exposure — ice bath, cold shower">🧊 Cold</button>
+              <button class="journal-tag" data-tag="nap" title="Took a nap during the day">😴 Nap</button>
+            </div>
+            <textarea id="journal-text" placeholder="Add a note for today…" style="width:100%; box-sizing:border-box; min-height:60px; background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:6px; padding:6px; font-family:inherit; font-size:11px; resize:vertical;"></textarea>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <button id="journal-save" style="white-space:nowrap;">Save note</button>
+            <span id="journal-status" style="font-size:10px; color:var(--muted);"></span>
+          </div>
+        </div>
+        <div id="journal-history" style="margin-top:8px; font-size:11px; color:var(--muted);"></div>
+        <div id="tag-correlations"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── RECOVERY ─────────────────────────────────────────────── -->
+  <section class="tab-panel" data-panel="recovery">
+    <header class="panel-header">
+      <div>
+        <h1>Recovery Performance</h1>
+        <div class="panel-subtitle">Autonomic nervous system (ANS) recovery markers</div>
+      </div>
+      <span class="panel-date" id="recovery-date"></span>
+    </header>
+    <div class="grid grid-recovery">
+      <div class="card span-2">
+        <div class="card-eyebrow">This morning</div>
+        <div class="ring-wrap big"><svg id="recovery-ring-big" viewBox="0 0 280 280"></svg></div>
+        <div class="recovery-state large" id="recovery-state-big">—</div>
+      </div>
+      <div class="card span-2">
+        <div class="card-eyebrow">Components</div>
+        <div class="components" id="recovery-components"></div>
+      </div>
+      <div class="card span-2">
+        <div class="card-eyebrow">HRV · 30 days</div>
+        <div class="chart-wrap"><canvas id="hrv-30d"></canvas></div>
+      </div>
+      <div class="card span-2">
+        <div class="card-eyebrow">Resting HR · 30 days</div>
+        <div class="chart-wrap"><canvas id="rhr-30d"></canvas></div>
+      </div>
+      <div class="card span-2">
+        <div class="card-eyebrow" title="RR[n] vs RR[n+1] — scatter shows cardiac coherence. Tight vertical (SD1) = good HRV. Wide horizontal (SD2) = strong long-term modulation.">Poincaré plot · last sleep</div>
+        <div class="chart-wrap"><canvas id="poincare-plot"></canvas></div>
+        <div id="poincare-meta" style="font-size:10px; color:var(--muted); margin-top:4px; text-align:center;"></div>
+      </div>
+      <div class="card span-2">
+        <div class="card-eyebrow">Skin temp deviation · 30 days</div>
+        <div class="chart-wrap"><canvas id="temp-30d"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SLEEP ─────────────────────────────────────────────── -->
+  <section class="tab-panel" data-panel="sleep">
+    <header class="panel-header">
+      <div>
+        <h1>Sleep Performance</h1>
+        <div class="panel-subtitle">Sleep cycles, consistency, and debt monitoring</div>
+      </div>
+      <span class="panel-date" id="sleep-date"></span>
+    </header>
+    <div class="grid grid-sleep">
+      <div class="card card-sleep span-4">
+        <div class="card-eyebrow">Hypnogram · last night</div>
+        <div class="hypnogram-wrap"><svg id="hypnogram" viewBox="0 0 1000 220"></svg></div>
+        <div class="legend" id="hypnogram-legend"></div>
+      </div>
+
+      <div class="card card-sleep">
+        <div class="card-eyebrow">Asleep</div>
+        <div class="big-num" id="sleep-total"></div>
+      </div>
+      <div class="card card-sleep">
+        <div class="card-eyebrow">Performance</div>
+        <div class="big-num"><span id="sleep-performance">—</span><span class="unit">%</span></div>
+        <div class="muted" id="sleep-need-line"></div>
+      </div>
+      <div class="card card-sleep">
+        <div class="card-eyebrow">Sleep debt · 7d</div>
+        <div class="big-num"><span id="sleep-debt">—</span><span class="unit">h</span></div>
+      </div>
+      <div class="card card-sleep">
+        <div class="card-eyebrow">Consistency</div>
+        <div class="big-num"><span id="sleep-consistency">—</span><span class="unit">%</span></div>
+      </div>
+
+      <div class="card card-sleep span-2">
+        <div class="card-eyebrow">Stages breakdown</div>
+        <div class="stage-bars" id="stage-bars"></div>
+      </div>
+      <div class="card card-sleep">
+        <div class="card-eyebrow">Respiratory rate</div>
+        <div class="big-num"><span id="sleep-resp">—</span><span class="unit">bpm</span></div>
+      </div>
+      <div class="card card-sleep">
+        <div class="card-eyebrow">SpO₂ · sleep</div>
+        <div class="big-num"><span id="sleep-spo2">—</span><span class="unit">%</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── STRAIN ─────────────────────────────────────────────── -->
+  <section class="tab-panel" data-panel="strain">
+    <header class="panel-header">
+      <div>
+        <h1>Cardiovascular Strain</h1>
+        <div class="panel-subtitle">Activity load, calories, and training zones</div>
+      </div>
+      <span class="panel-date" id="strain-date"></span>
+    </header>
+    <div class="grid grid-strain">
+      <div class="card">
+        <div class="card-eyebrow">Day strain</div>
+        <div class="big-num"><span id="strain-big">—</span><span class="unit">/21</span></div>
+        <div class="muted" id="strain-label"></div>
+      </div>
+      <div class="card">
+        <div class="card-eyebrow">Calories</div>
+        <div class="big-num"><span id="strain-cals">—</span><span class="unit">kcal</span></div>
+      </div>
+      <div class="card span-2">
+        <div class="card-eyebrow">Time in zones</div>
+        <div class="zones-row" id="zones-row"></div>
+      </div>
+      <div class="card span-3">
+        <div class="card-eyebrow">Strain curve · today</div>
+        <div class="chart-wrap"><canvas id="strain-curve"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-eyebrow">Zone donut</div>
+        <div class="donut-wrap"><svg id="zones-donut" viewBox="0 0 200 200"></svg></div>
+      </div>
+      <div class="card span-4">
+        <div class="card-eyebrow">Workouts</div>
+        <div class="workout-list" id="strain-workouts"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── TRENDS ─────────────────────────────────────────────── -->
+  <section class="tab-panel" data-panel="trends">
+    <header class="panel-header">
+      <div>
+        <h1>Trends & History</h1>
+        <div class="panel-subtitle">Long-term biometric progression and weekday rollups</div>
+      </div>
+      <div class="controls">
+        <select id="trend-metric">
+          <option value="recovery_score">Recovery</option>
+          <option value="rmssd_ms">HRV (RMSSD)</option>
+          <option value="resting_hr">Resting HR</option>
+          <option value="strain_score">Strain</option>
+          <option value="sleep_minutes">Sleep duration</option>
+          <option value="sleep_performance_pct">Sleep performance</option>
+          <option value="sleep_debt_minutes">Sleep debt</option>
+          <option value="avg_spo2">SpO₂</option>
+          <option value="skin_temp_deviation_c">Skin temp deviation</option>
+          <option value="respiratory_rate">Respiratory rate</option>
+          <option value="calories">Calories</option>
+          <option value="stress_avg">Stress</option>
+        </select>
+        <select id="trend-days">
+          <option value="14">14d</option>
+          <option value="30" selected>30d</option>
+          <option value="90">90d</option>
+          <option value="365">365d</option>
+        </select>
+      </div>
+    </header>
+    <div class="grid grid-trends">
+      <div class="card span-4" id="weekly-summary-card">
+        <div class="card-eyebrow">7-day summary</div>
+        <pre id="weekly-summary-text" style="font-family:inherit; font-size:11px; line-height:1.7; color:var(--muted); white-space:pre-wrap; margin:6px 0 0 0;">Loading…</pre>
+      </div>
+      <div class="card span-4">
+        <div class="card-eyebrow" id="trend-title">Recovery · 30 days</div>
+        <div class="chart-wrap tall"><canvas id="trend-main"></canvas></div>
+      </div>
+      <div class="card span-4">
+        <div class="card-eyebrow">Weekday averages</div>
+        <div class="chart-wrap"><canvas id="trend-weekday"></canvas></div>
+      </div>
+      <div class="card span-4">
+        <div class="card-eyebrow">All daily metrics</div>
+        <div class="table-wrap"><table id="trends-table"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── LIVE ─────────────────────────────────────────────── -->
+  <section class="tab-panel" data-panel="live">
+    <header class="panel-header">
+      <div>
+        <h1>Live Sensor Feed</h1>
+        <div class="panel-subtitle">Real-time Whoop BLE telemetry streaming</div>
+      </div>
+      <span class="panel-date" id="live-status"></span>
+    </header>
+    <div class="grid grid-live">
+      <div class="card">
+        <div class="card-eyebrow">Heart rate</div>
+        <div class="big-num"><span id="live-hr">—</span><span class="unit">bpm</span></div>
+      </div>
+      <div class="card">
+        <div class="card-eyebrow">SpO₂</div>
+        <div class="big-num"><span id="live-spo2">—</span><span class="unit">%</span></div>
+      </div>
+      <div class="card">
+        <div class="card-eyebrow">Skin temp</div>
+        <div class="big-num"><span id="live-temp">—</span><span class="unit">°C</span></div>
+      </div>
+      <div class="card">
+        <div class="card-eyebrow">Battery</div>
+        <div class="big-num"><span id="live-battery">—</span></div>
+      </div>
+      <div class="card span-4">
+        <div class="card-eyebrow">HR · last 5 min</div>
+        <div class="chart-wrap"><canvas id="live-chart"></canvas></div>
+      </div>
+      <div class="card span-2">
+        <div class="card-eyebrow">Device events</div>
+        <div class="event-log" id="live-events"></div>
+      </div>
+      <div class="card span-2">
+        <div class="card-eyebrow">Session stats</div>
+        <div class="kv-list" id="live-stats"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ─── SETTINGS DRAWER ─────────────────────────────────────────────── -->
+<aside class="drawer" id="settings-drawer">
+  <div class="drawer-head">
+    <h2>Settings</h2>
+    <button id="close-settings" class="close-btn">×</button>
+  </div>
+  <form class="settings-form" id="settings-form">
+    <label>Age <input name="age" type="number" min="1" max="120" /></label>
+    <label>Sex
+      <select name="sex">
+        <option value="">—</option>
+        <option value="M">Male</option>
+        <option value="F">Female</option>
+      </select>
+    </label>
+    <label>Weight (kg) <input name="weight_kg" type="number" min="20" max="300" step="0.1" /></label>
+    <label>Height (cm) <input name="height_cm" type="number" min="50" max="250" /></label>
+    <label>Max HR override <input name="max_hr_override" type="number" min="120" max="230" placeholder="auto: 220 − age" /></label>
+    <button class="primary" type="submit">Save</button>
+    <div class="hint">Used by zones, calories, sleep need and strain.</div>
+  </form>
+  <hr />
+  <div class="actions">
+    <button id="recompute-btn" type="button">Recompute last 7 days</button>
+    <div class="hint">Runs the full rollup after editing your profile or seeding new data.</div>
+  </div>
+</aside>
+<div class="backdrop" id="drawer-backdrop"></div>
+
+
+
+<script src="/vendor/chart.umd.min.js"></script>
+<script type="module" src="/js/data/api-shim.js"></script>
+<script src="/app.js"></script>
+<script type="module" src="/js/app-mvp.js"></script>
+<script>
+  // PWA service worker — registered after page load so it doesn't delay FCP.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        // Non-fatal: SW registration may fail in dev (file:// origins, etc.)
+        console.warn('[sw] registration failed', err);
+      });
+    });
+  }
+</script>
+</body>
+</html>

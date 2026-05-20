@@ -1,0 +1,14 @@
+.venv/
+data/*.db
+data/*.db-wal
+data/*.db-shm
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+*.egg-info/
+build/
+dist/
+.ruff_cache/
+node_modules/
+vendor/

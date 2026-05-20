@@ -1,0 +1,11 @@
+{
+  "values": {
+    "weight_kg": 75.5,
+    "weight_kg_date": "2026-05-20 08:00:00 +0000",
+    "weight_kg_units": "kg"
+  },
+  "updated_at": "2026-05-20T09:48:41+00:00",
+  "accepted": [
+    "weight_kg"
+  ]
+}
