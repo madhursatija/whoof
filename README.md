@@ -103,19 +103,28 @@ that round-trips through `shortcuts://x-callback-url`.
 - **Poincaré plot** — SD1/SD2 scatter from last night's RR intervals, rendered
   in the Recovery tab. Tells you at a glance whether short-term or long-term
   HRV is dominating.
-- **HRV baseline display** — Recovery tab shows today's RMSSD vs. your 14-day
-  rolling baseline (e.g., "52 ms vs baseline 45 ms (+16%)") — the core number
-  Whoop shows only to paying subscribers.
+- **HRV, RHR, and skin temp baselines** — Recovery Components card shows
+  today's RMSSD, resting HR, and skin temperature each compared to their
+  14-day rolling baseline with colour-coded deltas. The RMSSD number is the
+  one Whoop shows only to paying subscribers.
 - **Recovery calendar heatmap** — 30-day grid in the Trends tab coloured
-  green/yellow/red by recovery score. Today's cell is highlighted.
+  green/yellow/red by recovery score. Today's cell is highlighted. **Click
+  any cell to jump straight to the Recovery tab for that day.**
 - **Historical date navigation** — ‹ › buttons in Recovery, Sleep, and Strain
   tabs let you browse any past day in your data without leaving the app.
+- **Workout labels** — click the "✎ label" affordance on any detected workout
+  to add or rename it inline (e.g., "Running", "Cycling"). Labels are stored
+  in IndexedDB and included in the Workouts CSV export.
+- **Journal backfill & delete** — a date picker (defaults to today) lets you
+  log tags for past days you forgot to annotate; a × button on each history
+  row lets you delete individual entries.
 
 ### Data & export
 - **IndexedDB persistence** — samples, daily_metrics, journal, captures,
   workouts, sleep_stages, and profile — all local, no server.
-- **CSV export** — separate buttons for raw samples, daily metrics, journal
-  entries, and detected workouts. JSON export/import for full backup/restore.
+- **CSV export** — separate buttons for raw samples, daily metrics (includes
+  `hrv_baseline_ms`), journal entries, and detected workouts (includes label).
+  JSON export/import for full backup/restore.
 - **Progressive Web App** — installable, cache-first for assets, offline-capable.
 - **Push notifications** — opt-in for backfill complete, low recovery, low
   battery, and HR anomaly alerts.
@@ -320,7 +329,7 @@ whoop/
 ├── whoopfree/              Python package (HTTP server that serves web/)
 │   └── dashboard.py        stdlib http.server → serves web/
 ├── tests/
-│   ├── js/                 Vitest unit tests (250 tests, ~2.5 s)
+│   ├── js/                 Vitest unit tests (258 tests, ~2.7 s)
 │   └── *.py                Python metric tests (kept for reference)
 └── run.sh                  `./run.sh dash` starts the server
 ```

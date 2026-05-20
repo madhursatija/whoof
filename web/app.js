@@ -487,8 +487,9 @@ async function loadRecovery() {
   renderDateNav("recovery-date", data.date ?? dateParam);
 
   const m = data.summary || {};
+  const noData = data.summary == null;
   drawRecoveryRing($("recovery-ring-big"), m.recovery_score, true);
-  $("recovery-state-big").textContent = recoveryLabel(m.recovery_score);
+  $("recovery-state-big").textContent = noData ? "No data for this date" : recoveryLabel(m.recovery_score);
 
   // Components
   const comps = [
