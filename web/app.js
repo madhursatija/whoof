@@ -358,7 +358,8 @@ async function loadOverview() {
   });
 
   const m = overview.metrics || {};
-  
+  const trend7 = overview.trend7 || [];
+
   // Sleep Ring
   if ($("sleep-ring")) {
     drawGaugeRing($("sleep-ring"), m.sleep_performance_pct, "#ff9f0a", (x) => Math.round(x) + "%", 100);
@@ -372,9 +373,20 @@ async function loadOverview() {
   // Recovery Ring
   if ($("recovery-ring")) {
     drawGaugeRing($("recovery-ring"), m.recovery_score, recoveryColor(m.recovery_score), (x) => Math.round(x) + "%", 100);
-    $("recovery-meta").textContent = m.recovery_score == null
-      ? "needs overnight data"
-      : `HRV ${fmtInt(m.rmssd_ms)}ms · RHR ${fmtInt(m.resting_hr)} bpm`;
+    if (m.recovery_score == null) {
+      $("recovery-meta").textContent = "needs overnight data";
+    } else {
+      // Compute baseline deltas from trend7 (yesterday backward).
+      const prior = trend7.slice(0, -1);
+      const hrvBase = (() => {
+        const vs = prior.map((r) => r.rmssd_ms).filter((v) => v != null);
+        return vs.length ? vs.reduce((a, b) => a + b, 0) / vs.length : null;
+      })();
+      const hrvDelta = (m.rmssd_ms != null && hrvBase != null) ? m.rmssd_ms - hrvBase : null;
+      const arrow = (d) => d == null ? "" : ` ${d > 0 ? "↑" : d < 0 ? "↓" : "·"} ${d > 0 ? "+" : ""}${Math.round(d)}`;
+      $("recovery-meta").textContent =
+        `HRV ${fmtInt(m.rmssd_ms)}ms${arrow(hrvDelta)} · RHR ${fmtInt(m.resting_hr)} bpm`;
+    }
   }
 
   // Strain Ring
@@ -400,7 +412,6 @@ async function loadOverview() {
   $("now-battery").textContent = overview.battery ? overview.battery.detail : "—";
 
   // 7-day sparklines (recovery, sleep, strain) — symmetric trends in the three rings
-  const trend7 = overview.trend7 || [];
   const sparkOpts = (yMin, yMax) => ({
     responsive: true,
     maintainAspectRatio: false,
