@@ -145,12 +145,22 @@ async function apiOverview() {
   const recentWorkouts = workoutBatches.flat()
     .sort((a, b) => (a.start_utc < b.start_utc ? 1 : -1))
     .slice(0, 5);
+  // Last 14 days for trend context (oldest → newest).
+  const recentMetrics = await recentDailyMetrics(d, 14);
+  const trend7 = recentMetrics.slice(0, 7).reverse().map((r) => ({
+    date: r.date,
+    recovery_score: r.recovery_score ?? null,
+    rmssd_ms:       r.rmssd_ms       ?? null,
+    strain_score:   r.strain_score   ?? null,
+  }));
+
   return {
     date: day,
     metrics: m ?? null,
     latest_sample: latest,
     battery,
     recent_workouts: recentWorkouts,
+    trend7,
   };
 }
 

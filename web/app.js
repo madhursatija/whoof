@@ -399,6 +399,36 @@ async function loadOverview() {
   }
   $("now-battery").textContent = overview.battery ? overview.battery.detail : "—";
 
+  // 7-day recovery sparkline
+  const trend7 = overview.trend7 || [];
+  if ($("recovery-sparkline") && trend7.length > 1) {
+    makeOrUpdate("recovery-sparkline", {
+      type: "line",
+      data: {
+        labels: trend7.map((r) => r.date.slice(5)),
+        datasets: [{
+          data: trend7.map((r) => r.recovery_score),
+          borderColor: recoveryColor(m.recovery_score),
+          backgroundColor: "transparent",
+          borderWidth: 1.5,
+          pointRadius: 2,
+          pointBackgroundColor: trend7.map((r) => recoveryColor(r.recovery_score)),
+          tension: 0.3,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: {
+          x: { display: false },
+          y: { display: false, min: 0, max: 100 },
+        },
+      },
+    });
+  }
+
   // Recent workouts
   renderWorkoutList($("overview-workouts"), overview.recent_workouts || []);
 
