@@ -1,7 +1,8 @@
 .venv/
-data/*.db
-data/*.db-wal
-data/*.db-shm
+data/
+*.db
+*.db-wal
+*.db-shm
 __pycache__/
 *.pyc
 .pytest_cache/
@@ -12,3 +13,4 @@ dist/
 .ruff_cache/
 node_modules/
 vendor/
+.claude/
