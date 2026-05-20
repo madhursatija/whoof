@@ -1244,7 +1244,12 @@ async function renderTagCorrelations() {
     const corr = analyseTagCorrelations(entries, metrics);
     const insights = tagInsights(corr);
     if (!insights.length) {
-      el.innerHTML = '';
+      // Show a prompt only if the user has started logging but there's not enough data yet.
+      if (entries.length > 0) {
+        el.innerHTML = `<div style="margin-top:8px; font-size:10px; color:var(--muted); font-style:italic;">Keep logging daily tags — insights appear once you have enough data points per tag (need ≥2 tagged and ≥2 untagged days with next-day metrics).</div>`;
+      } else {
+        el.innerHTML = '';
+      }
       return;
     }
     const totalEntries = entries.length;

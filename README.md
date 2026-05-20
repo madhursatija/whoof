@@ -83,22 +83,52 @@ which the browser polls every minute and merges into `profile.weight_kg`.
 See [docs/SHORTCUT.md](docs/SHORTCUT.md) for the on-demand Apple Shortcut
 that round-trips through `shortcuts://x-callback-url`.
 
-## Other features that ship with v0.4
+## Features
 
+### Analysis & coaching
+- **Activity journal with tag correlation** — log up to 11 lifestyle tags
+  (alcohol, stress, hardworkout, caffeine, meditation, cold, nap, …). After
+  accumulating 2+ tagged/untagged days per tag, the app automatically computes
+  a Cohen's d effect size and surfaces insights like *"Alcohol strongly lowers
+  next-day recovery −20pts (−28%)(n=4)"*. Unlike the official app, you own
+  this analysis and the underlying data.
+- **Daily training plan** — rest / active / train / push recommendation driven
+  by today's recovery score, 7-day strain load, and accumulated sleep debt.
+  Includes the day-specific rationale (actual numbers) alongside the zone advice.
+- **Health insights engine** — 9 generators watching HRV trend, RHR trend,
+  sleep debt, sleep consistency, recovery streaks, strain/recovery balance,
+  skin temp deviation, respiratory rate drift, and sleep duration trend.
+- **Weekly summary** — emoji-formatted 7-day recap in the Trends tab; the
+  top-3 personalised tag insights are appended automatically.
+- **Poincaré plot** — SD1/SD2 scatter from last night's RR intervals, rendered
+  in the Recovery tab. Tells you at a glance whether short-term or long-term
+  HRV is dominating.
+
+### Data & export
+- **IndexedDB persistence** — samples, daily_metrics, journal, captures,
+  workouts, sleep_stages, and profile — all local, no server.
+- **CSV export** — separate buttons for raw samples, daily metrics, and journal
+  entries. JSON export/import for full backup/restore.
+- **Progressive Web App** — installable, cache-first for assets, offline-capable.
+- **Push notifications** — opt-in for backfill complete, low recovery, low
+  battery, and HR anomaly alerts.
+
+### Hardware & connectivity
 - **Generic HR Profile toggle** — Diagnostics → "HR profile" turns on the
   standard BLE HR service (0x180D) so Strava / Zwift / Peloton / Apple
   Watch companions can pair with the strap as a regular HR monitor.
 - **Smart alarm** — set a wake time; the strap vibrates even if your phone
   is in the other room. Set / Off / Test buttons in the alarm drawer.
-- **Raw packet capture** — `📸 Capture raw packets` records every framed
-  packet to a downloadable NDJSON file (and persists to IndexedDB).
-  Useful when contributing reverse-engineering work on bytes 18+ of
-  the realtime packet.
-- **Diagnostics drawer** — quick buttons for Hello / Battery / Clock /
-  Data Range / Haptic / Raw IMU / Extended Battery / HR Profile toggle.
+- **Bluetooth scale** — pairs directly with any standard Weight Scale Service
+  (0x181D) scale (Beurer, A&D, some Withings). No app, no cloud.
+- **Apple Health weight sync** — poll via iPhone Shortcut or Health Auto Export.
+- **Raw packet capture** — records every framed packet to NDJSON, useful for
+  bytes 18+ reverse-engineering research.
+- **Diagnostics drawer** — Hello / Battery / Clock / Data Range / Haptic /
+  Raw IMU / Extended Battery / HR Profile.
 - **Console log drawer** — last 30 lines of firmware printf output.
-- **Multi-tab guard** — refuses to connect if another tab in the same
-  browser is already holding the GATT connection.
+- **Multi-tab guard** — refuses to connect if another tab is already holding
+  the GATT connection.
 
 ---
 
@@ -133,10 +163,12 @@ You'll find these object stores:
 | `samples` | every ~30-second sensor packet (HR/RR/SpO2/temp/accel) |
 | `sessions` | start/stop of each recording session |
 | `device_events` | connect/disconnect/battery/error log |
-| `daily_metrics` | one row per calendar day with HRV/recovery/strain |
+| `daily_metrics` | one row per calendar day with HRV/recovery/strain/sleep |
 | `profile` | age, sex, weight (used for calorie estimates) |
 | `sleep_stages` | nightly sleep stage breakdown |
 | `workouts` | detected workout windows with zone time and calories |
+| `journal` | daily activity entries with tags (for correlation analysis) |
+| `captures` | raw NDJSON packet dumps for protocol research |
 
 Use the **Export** button to download a full JSON backup. **Import** restores
 it on any machine (or after clearing browser storage).
@@ -264,19 +296,26 @@ whoop/
 │       │   ├── sleep.js    sleep window detection, stage classification
 │       │   ├── workouts.js detectWorkouts
 │       │   ├── recovery.js recoveryScore, recoveryBreakdown
-│       │   └── rollup.js   rollupDay / rollupMissing / recomputeRecent
+│       │   ├── rollup.js   rollupDay / rollupMissing / recomputeRecent
+│       │   ├── insights.js 9-generator health insights engine
+│       │   ├── plan.js     dailyPlan (rest/active/train/push zones)
+│       │   ├── weekly.js   weeklySummary
+│       │   └── correlate.js analyseTagCorrelations / tagInsights (Cohen's d)
 │       ├── util/
 │       │   ├── events.js   createEmitter (on / emit)
-│       │   └── time.js     isoUtcNow, localDateKey, startOfLocalDay
+│       │   ├── time.js     isoUtcNow, localDateKey, startOfLocalDay
+│       │   ├── multitab.js single-tab BLE guard
+│       │   └── notify.js   push notifications (backfill/recovery/battery/HR)
 │       └── dev/
-│           └── seed.js     seedDemoData (14 days of synthetic data)
-├── whoopfree/              Python package (dashboard server only in v0.3)
+│           ├── seed.js     seedDemoData (14 days of synthetic data + journal)
+│           ├── capture.js  raw NDJSON packet recorder
+│           └── analyzer.js capture file analysis tool
+├── whoopfree/              Python package (HTTP server that serves web/)
 │   └── dashboard.py        stdlib http.server → serves web/
 ├── tests/
-│   ├── js/                 Vitest unit tests (99 tests, ~1.8 s)
+│   ├── js/                 Vitest unit tests (247 tests, ~2.2 s)
 │   └── *.py                Python metric tests (kept for reference)
-├── run.sh                  `./run.sh dash` starts the server
-└── data/whoop.db           legacy SQLite (not used by v0.3 browser UI)
+└── run.sh                  `./run.sh dash` starts the server
 ```
 
 ---
