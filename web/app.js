@@ -868,6 +868,53 @@ async function loadStrain() {
   });
 
   renderWorkoutList($("strain-workouts"), data.workouts || []);
+
+  // 30-day strain trend bars
+  const trend = data.trend || [];
+  if (trend.length && $("strain-30d")) {
+    const tLabels = trend.map((r) => r.date.slice(5));
+    const tData = trend.map((r) => r.strain_score);
+    makeOrUpdate("strain-30d", {
+      type: "bar",
+      data: { labels: tLabels, datasets: [{
+        label: "Strain /21",
+        data: tData,
+        backgroundColor: tData.map((v) => v == null ? "transparent" : COLORS.strain),
+        borderWidth: 0,
+      }] },
+      options: commonOpts({
+        scales: {
+          x: { ticks: { color: COLORS.muted, maxRotation: 0, autoSkip: true }, grid: { color: COLORS.border } },
+          y: { min: 0, max: 21, ticks: { color: COLORS.muted }, grid: { color: COLORS.border } },
+        },
+      }),
+    });
+  }
+
+  // ACWR card
+  const acwr = data.acwr;
+  if ($("acwr-ratio")) {
+    if (acwr) {
+      $("acwr-ratio").textContent = acwr.ratio.toFixed(2);
+      const bandStyles = {
+        'sweet-spot': { label: "SWEET SPOT", color: COLORS.recGood },
+        'elevated':   { label: "ELEVATED",   color: COLORS.recMid  },
+        'high-risk':  { label: "HIGH RISK",  color: COLORS.recBad  },
+        'detraining': { label: "DETRAINING", color: COLORS.muted   },
+      };
+      const b = bandStyles[acwr.band] || bandStyles['sweet-spot'];
+      $("acwr-band").textContent = b.label;
+      $("acwr-band").style.color = b.color;
+      $("acwr-ratio").style.color = b.color;
+      $("acwr-detail").textContent =
+        `acute ${acwr.acute.toFixed(1)} · chronic ${acwr.chronic.toFixed(1)} · target 0.8–1.3`;
+    } else {
+      $("acwr-ratio").textContent = "—";
+      $("acwr-band").textContent = "need 10+ days of strain data";
+      $("acwr-band").style.color = "var(--muted)";
+      $("acwr-detail").textContent = "";
+    }
+  }
 }
 
 function zonePctLabel(i) {

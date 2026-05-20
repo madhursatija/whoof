@@ -273,11 +273,47 @@ async function apiStrain(dayIso) {
     if (bucketHrs.length) flush();
   }
 
-  const [m, workouts] = await Promise.all([
+  const [m, workouts, history] = await Promise.all([
     getDailyMetric(d, day),
     workoutsForDate(d, day),
+    recentDailyMetrics(d, 30),
   ]);
-  return { date: day, summary: m ?? null, curve: series, workouts };
+
+  // 30-day strain trend (oldest → newest)
+  const trend = history
+    .filter((row) => row.date <= day)
+    .reverse()
+    .map((r) => ({
+      date: r.date,
+      strain_score: r.strain_score ?? null,
+      calories:     r.calories     ?? null,
+    }));
+
+  // Acute:Chronic Workload Ratio — 7d acute / prior 21d chronic
+  const strainVals = history
+    .filter((row) => row.date <= day)
+    .map((r) => r.strain_score)
+    .filter((v) => v != null);
+  let acwrInfo = null;
+  if (strainVals.length >= 10) {
+    const acute = strainVals.slice(0, 7);
+    const chronic = strainVals.slice(7, 28);
+    if (acute.length >= 5 && chronic.length >= 5) {
+      const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+      const acuteMean = mean(acute);
+      const chronicMean = mean(chronic);
+      const ratio = chronicMean ? acuteMean / chronicMean : null;
+      if (ratio != null) {
+        let band = 'sweet-spot';
+        if      (ratio > 1.5) band = 'high-risk';
+        else if (ratio > 1.3) band = 'elevated';
+        else if (ratio < 0.6) band = 'detraining';
+        acwrInfo = { ratio: Math.round(ratio * 100) / 100, acute: acuteMean, chronic: chronicMean, band };
+      }
+    }
+  }
+
+  return { date: day, summary: m ?? null, curve: series, workouts, trend, acwr: acwrInfo };
 }
 
 async function apiTrends(metric = 'recovery_score', days = 30) {
