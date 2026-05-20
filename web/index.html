@@ -2,13 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MS Vitality</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>whoopfree</title>
 <link rel="manifest" href="/manifest.json" />
-<meta name="theme-color" content="#1a1a2e" />
+<meta name="theme-color" content="#07070A" />
+<meta name="color-scheme" content="dark" />
+<meta name="description" content="Open-source Whoop 4.0 dashboard. Runs entirely in your browser — no subscription, no cloud." />
+
+<!-- iOS: install as a real-feeling app via Safari → Share → Add to Home Screen -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Vitality" />
+<meta name="apple-mobile-web-app-title" content="whoopfree" />
+<meta name="format-detection" content="telephone=no" />
+
+<!-- Apple touch icon (180×180 is the canonical iOS size) + size variants -->
+<link rel="apple-touch-icon" href="/icons/icon-180.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png" />
+<link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+<link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+<link rel="mask-icon" href="/icons/icon.svg" color="#16EC06" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -686,6 +701,30 @@
   </div>
 </aside>
 <div class="backdrop" id="drawer-backdrop"></div>
+
+<!-- Mobile bottom navigation — visible only on iPhone-width screens via CSS -->
+<nav class="mobile-nav" id="mobile-nav" aria-label="Primary">
+  <button class="mtab" data-tab="overview" aria-label="Overview">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    Today
+  </button>
+  <button class="mtab" data-tab="recovery" aria-label="Recovery">
+    <svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"/></svg>
+    Recovery
+  </button>
+  <button class="mtab" data-tab="sleep" aria-label="Sleep">
+    <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    Sleep
+  </button>
+  <button class="mtab" data-tab="strain" aria-label="Strain">
+    <svg viewBox="0 0 24 24"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg>
+    Strain
+  </button>
+  <button class="mtab" data-tab="trends" aria-label="Trends">
+    <svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+    Trends
+  </button>
+</nav>
 
 
 

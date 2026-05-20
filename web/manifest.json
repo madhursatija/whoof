@@ -1,37 +1,53 @@
 {
-  "name": "MS Vitality",
-  "short_name": "Vitality",
-  "description": "Open-source health metrics from your Whoop 4.0 — runs entirely in your browser with no subscription required.",
+  "name": "whoopfree",
+  "short_name": "whoopfree",
+  "description": "Subscription-free Whoop 4.0 dashboard — recovery, strain, sleep, HRV. Runs entirely in your browser.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
-  "theme_color": "#1a1a2e",
-  "background_color": "#0d0d17",
-  "categories": ["health", "fitness"],
+  "theme_color": "#07070A",
+  "background_color": "#07070A",
+  "categories": ["health", "fitness", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "/icons/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "screenshots": [],
   "shortcuts": [
     {
       "name": "Overview",
-      "url": "/?tab=overview",
+      "url": "/#overview",
       "description": "Today's recovery, strain and sleep at a glance"
     },
     {
       "name": "Live",
-      "url": "/?tab=live",
+      "url": "/#live",
       "description": "Live heart rate and HRV"
     }
   ]

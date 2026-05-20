@@ -131,16 +131,19 @@ function setTab(name) {
   // Reset date navigation when the user explicitly switches tabs.
   if (name !== activeTab) _browseDate = null;
   activeTab = name;
-  document.querySelectorAll(".tab").forEach((t) =>
+  // Sidebar tabs + mobile bottom-nav tabs share .active styling
+  document.querySelectorAll(".tab, .mtab").forEach((t) =>
     t.classList.toggle("active", t.dataset.tab === name));
   document.querySelectorAll(".tab-panel").forEach((p) =>
     p.classList.toggle("active", p.dataset.panel === name));
   history.replaceState(null, "", "#" + name);
+  // Scroll to top on tab switch (especially helpful on mobile)
+  window.scrollTo({ top: 0, behavior: "instant" });
   loadActiveTab().catch((e) => setStatus("error: " + e.message));
 }
 
 function initTabs() {
-  document.querySelectorAll(".tab").forEach((b) =>
+  document.querySelectorAll(".tab, .mtab").forEach((b) =>
     b.addEventListener("click", () => setTab(b.dataset.tab)));
   const initial = (location.hash || "#overview").slice(1);
   setTab(initial);

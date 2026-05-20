@@ -74,6 +74,12 @@
   --gutter:    20px;
   --sidebar-w: 240px;
   --topbar-h:  64px;
+
+  /* iOS safe areas (notch / Dynamic Island / home indicator) */
+  --sa-top:    env(safe-area-inset-top, 0px);
+  --sa-bottom: env(safe-area-inset-bottom, 0px);
+  --sa-left:   env(safe-area-inset-left, 0px);
+  --sa-right:  env(safe-area-inset-right, 0px);
 }
 
 /* ───────────────────────────────────────────────── */
@@ -507,13 +513,115 @@ main.content {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid > .span-3, .grid > .span-4 { grid-column: span 2; }
 }
+
+/* ───────────────────────────────────────────────── */
+/* Mobile: iPhone PWA layout                          */
+/* ───────────────────────────────────────────────── */
+
 @media (max-width: 720px) {
-  body { grid-template-columns: 1fr; }
+  body {
+    grid-template-columns: 1fr;
+    /* Respect iOS safe-areas (notch on left in landscape, home indicator) */
+    padding-left:  var(--sa-left);
+    padding-right: var(--sa-right);
+  }
   .sidebar { display: none; }
-  main.content { padding: 16px; }
+
+  main.content {
+    padding: 12px 14px calc(80px + var(--sa-bottom)) 14px; /* leave room for bottom nav */
+  }
+
+  /* Make topbar compact + respect status-bar inset */
+  .top-bar {
+    height: auto;
+    min-height: 52px;
+    padding-top: var(--sa-top);
+    margin-bottom: 6px;
+  }
+  .user-profile .user-info { display: none; }
+  .user-profile { padding: 4px; }
+  .date-pill { padding: 6px 10px; font-size: 11px; }
+
+  /* Panel header: smaller hero, no right-aligned date hugging */
+  .panel-header { padding: 8px 0 16px 0; flex-direction: column; align-items: flex-start; gap: 10px; }
+  .panel-header h1 { font-size: 26px; }
+  .panel-subtitle { font-size: 13px; }
+  .panel-date { font-size: 11px; }
+
+  /* All grids collapse to one column on phone */
   .grid { grid-template-columns: 1fr; gap: 12px; }
   .grid > .span-2, .grid > .span-3, .grid > .span-4 { grid-column: span 1; }
+
+  /* Hero ring trio stacks; ring smaller */
+  .hero-ring-row { grid-template-columns: 1fr; gap: 12px; }
+  .ring-wrap { width: 180px; height: 180px; }
+  .ring-wrap.big { width: 220px; height: 220px; }
+  .ring-value .num { font-size: 56px; }
+  .ring-value .num.big { font-size: 72px; }
+  .ring-value .num .unit { font-size: 22px; }
+
+  /* Cards: tighter padding */
+  .card { padding: 16px 16px; }
+  .card .card-eyebrow { margin-bottom: 10px; }
+  .card .big-num { font-size: 28px; }
+  h1 { font-size: 24px; }
+  h2 { font-size: 18px; }
+
+  /* Live HR card: stack the now-grid below the bpm again */
+  .now-tile { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .now-hr { font-size: 44px !important; }
+  .now-grid { grid-template-columns: 1fr 1fr; }
+
+  /* Plan illustration smaller */
+  #plan-zone { width: 44px !important; height: 44px !important; }
+
+  /* Charts shorter */
+  .chart-wrap { height: 160px; }
+  .chart-wrap.tall { height: 200px; }
+
+  /* Settings drawer takes full width on mobile */
+  .drawer { width: 100vw; max-width: 100vw; padding: 24px 20px calc(24px + var(--sa-bottom)) 20px; }
+
+  /* Reveal mobile bottom nav */
+  .mobile-nav { display: flex !important; }
 }
+
+/* Mobile bottom navigation — hidden on desktop, visible on phone */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: calc(64px + var(--sa-bottom));
+  padding-bottom: var(--sa-bottom);
+  background: rgba(10, 10, 14, 0.92);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top: 1px solid var(--border);
+  justify-content: space-around;
+  align-items: stretch;
+  z-index: 50;
+}
+.mobile-nav .mtab {
+  flex: 1;
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  font: 600 9px var(--font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 0;
+  transition: color 120ms;
+}
+.mobile-nav .mtab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.mobile-nav .mtab.active { color: var(--recovery); }
+.mobile-nav .mtab:active { transform: scale(0.92); }
 
 /* ───────────────────────────────────────────────── */
 /* Hero rings (Whoop-style)                            */
