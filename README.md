@@ -108,6 +108,8 @@ that round-trips through `shortcuts://x-callback-url`.
   Whoop shows only to paying subscribers.
 - **Recovery calendar heatmap** — 30-day grid in the Trends tab coloured
   green/yellow/red by recovery score. Today's cell is highlighted.
+- **Historical date navigation** — ‹ › buttons in Recovery, Sleep, and Strain
+  tabs let you browse any past day in your data without leaving the app.
 
 ### Data & export
 - **IndexedDB persistence** — samples, daily_metrics, journal, captures,
