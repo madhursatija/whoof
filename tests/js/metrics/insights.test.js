@@ -20,6 +20,7 @@ function makeMetrics(overrides = []) {
     respiratory_rate: 14,
     avg_skin_temp_c: 33.5,
     skin_temp_deviation_c: 0.0,
+    avg_spo2: 97,
   };
   return overrides.map((o) => ({ ...base, ...o }));
 }
@@ -259,5 +260,44 @@ describe('Sleep duration insights', () => {
     }));
     const ins = generateInsights(metrics);
     expect(ins.find((i) => i.id === 'sleep-short')).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SpO₂
+// ---------------------------------------------------------------------------
+
+describe('SpO₂ insights', () => {
+  it('flags low SpO₂ (<93%) as warn', () => {
+    const metrics = makeMetrics(Array(5).fill({ avg_spo2: 91 }));
+    const ins = generateInsights(metrics);
+    const alert = ins.find((i) => i.id === 'spo2-low');
+    expect(alert).toBeDefined();
+    expect(alert.severity).toBe('warn');
+    expect(alert.trend).toBe('down');
+  });
+
+  it('flags borderline SpO₂ (93–94%) as info', () => {
+    const metrics = makeMetrics(Array(5).fill({ avg_spo2: 94 }));
+    const ins = generateInsights(metrics);
+    const alert = ins.find((i) => i.id === 'spo2-borderline');
+    expect(alert).toBeDefined();
+    expect(alert.severity).toBe('info');
+  });
+
+  it('does not flag normal SpO₂ (>=95%)', () => {
+    const metrics = makeMetrics(Array(5).fill({ avg_spo2: 97 }));
+    const ins = generateInsights(metrics);
+    expect(ins.find((i) => i.id?.startsWith('spo2'))).toBeUndefined();
+  });
+
+  it('returns null when fewer than 2 SpO₂ values available', () => {
+    // Only one row has avg_spo2 — not enough to act
+    const metrics = makeMetrics([
+      { avg_spo2: 90 },
+      ...Array(4).fill({ avg_spo2: null }),
+    ]);
+    const ins = generateInsights(metrics);
+    expect(ins.find((i) => i.id?.startsWith('spo2'))).toBeUndefined();
   });
 });

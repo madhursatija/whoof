@@ -246,6 +246,33 @@ function sleepDurationTrend(chrono) {
   return null;
 }
 
+function spo2Alert(slice) {
+  const vals = slice.slice(0, 3).map((m) => m.avg_spo2).filter((v) => v != null);
+  if (vals.length < 2) return null;
+  const avg = mean(vals);
+  if (avg < 93) {
+    return {
+      id: 'spo2-low',
+      severity: 'warn',
+      title: `SpO₂ ${avg.toFixed(0)}% (low)`,
+      body: `Average blood oxygen during sleep has been ${avg.toFixed(0)}% — below the 95% threshold. Consistently low SpO₂ may indicate sleep apnoea or respiratory issues.`,
+      metric: 'avg_spo2',
+      trend: 'down',
+    };
+  }
+  if (avg < 95) {
+    return {
+      id: 'spo2-borderline',
+      severity: 'info',
+      title: `SpO₂ ${avg.toFixed(0)}% (borderline)`,
+      body: `Average sleep SpO₂ of ${avg.toFixed(0)}% is slightly below the ideal 95%+ range. Monitor for trends.`,
+      metric: 'avg_spo2',
+      trend: 'down',
+    };
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 
 const SORDER = { critical: 0, warn: 1, info: 2 };
@@ -275,6 +302,7 @@ export function generateInsights(metrics, { days = 14 } = {}) {
     sleepConsistency(slice),
     skinTempAlert(slice),
     respiratoryRateAlert(slice),
+    spo2Alert(slice),
   ];
 
   return candidates
