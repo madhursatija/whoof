@@ -585,35 +585,33 @@ function drawSleepBarsMini(el, m) {
 
 function renderWorkoutList(el, workouts) {
   if (!workouts.length) {
-    el.innerHTML = `<div class="empty-row">No workouts detected yet.</div>`;
+    el.innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18 L 10 14 L 14 17 L 19 8"/><circle cx="6" cy="18" r="1.5" fill="currentColor"/><circle cx="10" cy="14" r="1.5" fill="currentColor"/><circle cx="14" cy="17" r="1.5" fill="currentColor"/><circle cx="19" cy="8" r="1.5" fill="currentColor"/></svg>
+      No workouts detected yet
+    </div>`;
     return;
   }
   el.innerHTML = workouts.map((w) => {
     const start = new Date(w.start_utc);
     const dur = Math.round((w.duration_seconds || 0) / 60);
-    const labelHtml = w.label
-      ? `<span class="pill workout-label" style="cursor:pointer;" title="Click to rename">${w.label}</span>`
-      : `<span class="workout-label-add" data-id="${w.id}" style="font-size:10px;color:var(--muted);cursor:pointer;" title="Add label">✎ label</span>`;
+    const labelTxt = w.label || "Workout";
     return `<div class="workout-row" data-workout-id="${w.id}">
+      <div class="wo-time">${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}<br><span style="opacity:0.6">${dur} min</span></div>
       <div>
-        <div>${start.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}</div>
-        <div class="when">${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${dur} min</div>
-        ${labelHtml}
+        <div class="wo-name workout-label" style="cursor:pointer;" title="Click to rename">${labelTxt}</div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">avg ${fmtInt(w.avg_hr)} · max ${fmtInt(w.max_hr)} bpm · ${fmtInt(w.calories)} kcal</div>
       </div>
-      <div class="pill">avg ${fmtInt(w.avg_hr)} bpm</div>
-      <div class="pill">max ${fmtInt(w.max_hr)}</div>
-      <div class="pill">${fmtInt(w.calories)} kcal</div>
-      <div class="strain-num">${(w.strain ?? 0).toFixed(1)}</div>
+      <div class="wo-strain">${(w.strain ?? 0).toFixed(1)}</div>
     </div>`;
   }).join("");
 
   // Wire inline label editing.
-  el.querySelectorAll(".workout-label, .workout-label-add").forEach((trigger) => {
+  el.querySelectorAll(".workout-label").forEach((trigger) => {
     trigger.addEventListener("click", (ev) => {
       const row = ev.target.closest("[data-workout-id]");
       if (!row) return;
       const id = parseInt(row.dataset.workoutId, 10);
-      const current = trigger.classList.contains("pill") ? trigger.textContent : "";
+      const current = trigger.textContent === "Workout" ? "" : trigger.textContent;
       const inp = document.createElement("input");
       inp.type = "text";
       inp.value = current;
@@ -1348,6 +1346,11 @@ function init() {
   initTabs();
   initDrawer();
   initTrendsControls();
+  // Persistent topbar date (independent of which tab the user is on)
+  const td = new Date();
+  if ($("topbar-date")) {
+    $("topbar-date").textContent = `Today · ${td.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+  }
   refreshAll();
   setInterval(refreshAll, 10000);
   // Allow other modules (app-mvp.js, etc.) to trigger a re-render when they

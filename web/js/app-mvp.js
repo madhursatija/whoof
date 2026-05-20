@@ -759,8 +759,13 @@ setInterval(renderDailyPlan, 120_000);
 
 // ----- Health insights panel ---------------------------------------------
 
-const INSIGHT_ICONS = { info: 'ℹ️', warn: '⚠️', critical: '🚨' };
-const INSIGHT_COLORS = { info: 'var(--fg)', warn: '#fa3', critical: '#f55' };
+// Inline SVG icons keyed by severity — render with currentColor so they
+// inherit the .insight.<sev> .ins-icon color set in styles.css.
+const INSIGHT_SVG = {
+  info:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  warn:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+  critical: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
+};
 
 async function renderInsights() {
   const card = document.getElementById('insights-card');
@@ -770,17 +775,23 @@ async function renderInsights() {
     if (!db) db = await openDb();
     const metrics = await recentDailyMetrics(db, 14);
     const insights = generateInsights(metrics);
+    // Update topbar counter
+    const counter = document.getElementById('topbar-insight-count');
+    if (counter) {
+      counter.textContent = insights.length;
+      counter.style.display = insights.length ? 'inline-flex' : 'none';
+    }
     if (!insights.length) {
       card.style.display = 'none';
       return;
     }
     card.style.display = '';
     list.innerHTML = insights.map((ins) => `
-      <div style="display:flex; gap:8px; padding:6px 0; border-top:1px solid var(--border); align-items:flex-start;">
-        <span style="font-size:14px; flex-shrink:0;">${INSIGHT_ICONS[ins.severity] ?? 'ℹ️'}</span>
+      <div class="insight ${ins.severity}">
+        <span class="ins-icon">${INSIGHT_SVG[ins.severity] ?? INSIGHT_SVG.info}</span>
         <div>
-          <div style="font-size:12px; font-weight:600; color:${INSIGHT_COLORS[ins.severity] ?? 'var(--fg)'};">${escapeHtml(ins.title)}</div>
-          <div style="font-size:11px; color:var(--muted); line-height:1.4; margin-top:2px;">${escapeHtml(ins.body)}</div>
+          <div class="ins-title">${escapeHtml(ins.title)}</div>
+          <div class="ins-body">${escapeHtml(ins.body)}</div>
         </div>
       </div>
     `).join('');
@@ -1501,26 +1512,27 @@ async function renderRecoveryCal() {
       const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
       const label = val != null ? `${dateStr}: ${cfg.fmt(val)}` : dateStr;
       const isToday = i === 0;
-      cells.push(`<div title="${label}" data-cal-date="${iso}" style="
-        width:28px; height:28px; border-radius:5px; flex-shrink:0;
+      cells.push(`<div class="cal-cell" title="${label}" data-cal-date="${iso}" style="
+        aspect-ratio:1; border-radius:6px;
         background:${colorFn(val)};
-        opacity:${val == null ? 0.35 : 1};
-        box-sizing:border-box; cursor:pointer;
-        border: ${isToday ? '2px solid var(--fg)' : '2px solid transparent'};
+        opacity:${val == null ? 0.18 : 1};
+        cursor:pointer;
+        ${isToday ? 'box-shadow: 0 0 0 2px var(--text);' : ''}
+        transition: transform 120ms;
       "></div>`);
     }
 
     const legendHtml = cfg.legend.map((l) =>
-      `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${l.bg};margin-right:2px;"></span>${l.label}`
+      `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${l.bg};"></span>${l.label}</span>`
     ).join('  ');
 
     el.innerHTML = `
-      <div style="display:flex; gap:4px; flex-wrap:wrap; max-width:100%;">
+      <div id="recovery-cal-grid" style="display:grid; grid-template-columns:repeat(15, 1fr); gap:6px; margin-top:6px;">
         ${cells.join('')}
       </div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; font-size:10px; color:var(--muted);">
+      <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-top:14px; font-size:11px; color:var(--text-muted);">
         ${legendHtml}
-        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--bg-3);opacity:.35;border:1px solid var(--border);margin-right:2px;"></span>No data
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--surface-3);opacity:0.4;"></span>No data</span>
       </div>`;
 
     el.querySelectorAll('[data-cal-date]').forEach((cell) => {

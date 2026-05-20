@@ -934,13 +934,10 @@ table tr:hover td { background: rgba(255,255,255,0.02); }
 table td { color: var(--text-2); }
 
 /* Calendar heatmap */
-#recovery-cal {
-  display: grid;
-  grid-template-columns: repeat(15, 1fr);
-  gap: 5px;
-}
+.cal-cell { transition: transform 120ms; }
+.cal-cell:hover { transform: scale(1.18); z-index: 2; position: relative; }
 @media (max-width: 720px) {
-  #recovery-cal { grid-template-columns: repeat(7, 1fr); }
+  #recovery-cal-grid { grid-template-columns: repeat(10, 1fr) !important; }
 }
 
 /* Journal tags */
@@ -1021,3 +1018,33 @@ table td { color: var(--text-2); }
 .muted { color: var(--text-muted); }
 .big-num { font-family: var(--font-display); }
 .unit { font-size: 0.5em; color: var(--text-muted); font-weight: 600; margin-left: 4px; }
+
+/* Hide some clutter in the BT panel when disconnected */
+#mvp-panel #mvp-spo2, #mvp-panel #mvp-temp, #mvp-panel #mvp-rr,
+#mvp-panel #mvp-hr {
+  font-variant-numeric: tabular-nums;
+}
+#mvp-panel details > summary {
+  list-style: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+#mvp-panel details > summary:hover { color: var(--text); }
+#mvp-panel details > summary::-webkit-details-marker { display: none; }
+#mvp-panel details[open] > summary::before { content: "▾ "; }
+#mvp-panel details:not([open]) > summary::before { content: "▸ "; }
+
+/* Make export buttons compact + outline-only */
+#mvp-panel button[id^="mvp-export"], #mvp-panel #mvp-import, #mvp-panel #mvp-reset {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border: 1px solid var(--border) !important;
+  padding: 4px 8px !important;
+  font-size: 10px !important;
+  letter-spacing: 0;
+}
+#mvp-panel button[id^="mvp-export"]:hover, #mvp-panel #mvp-import:hover, #mvp-panel #mvp-reset:hover {
+  color: var(--text) !important;
+  border-color: var(--border-hi) !important;
+}
