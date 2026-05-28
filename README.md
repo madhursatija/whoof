@@ -1,17 +1,29 @@
 # whoof
 
-Use your Whoop 4.0 strap **without a subscription**. Reads heart rate, RR
-intervals, SpO2, and skin temperature straight off the band over Bluetooth
-Low Energy, stores everything locally in the browser, and computes
-Whoop-style **HRV, recovery, and strain** metrics — all without the app or a
-paid account.
+An **independent, unofficial, educational** BLE client for the WHOOP 4.0
+strap. Reads heart rate, RR intervals, SpO₂, and skin temperature off the
+band over Bluetooth Low Energy, stores everything locally in your browser,
+and computes textbook **HRV, recovery, and strain** estimates on-device.
 
 Built on top of open research from [`jogolden/whoomp`][whoomp] and
 [`bWanShiTong/reverse-engineering-whoop`][bwan].
 
-> The Whoop 4.0 device itself has **no subscription check at the BLE layer**.
-> Your strap keeps working after your subscription ends — Whoop just stops
-> showing you the data. This project gives that data back to you.
+> [!IMPORTANT]
+> **Disclaimer.** This is an unofficial, third-party project provided for
+> **educational, research, and personal interoperability purposes only**.
+> It is **not affiliated with, endorsed by, or sponsored by WHOOP, Inc.**
+> "WHOOP" and "WHOOP 4.0" are trademarks of WHOOP, Inc.; references here
+> are nominative and describe hardware compatibility only.
+>
+> The metrics surfaced by this software are **not clinically validated and
+> are not medical advice**. Do not use for medical, clinical, diagnostic,
+> or therapeutic purposes. The software is provided "as is" without
+> warranty of any kind (MIT). **See [DISCLAIMER.md](DISCLAIMER.md) before
+> using.**
+
+> The WHOOP 4.0 device itself broadcasts raw sensor telemetry over standard
+> BLE without a subscription gate at the wire layer. This project lets you
+> read that telemetry from a strap you own — nothing more.
 
 ---
 
@@ -378,4 +390,12 @@ whoof/
 [bwan]:         https://github.com/bWanShiTong/reverse-engineering-whoop
 [jacc]:         https://github.com/jacc/whoop-re
 
-MIT, like everything upstream.
+## License & legal
+
+MIT, like everything upstream. See [LICENSE](LICENSE) for the warranty
+disclaimer and [DISCLAIMER.md](DISCLAIMER.md) for the trademark notice,
+non-affiliation statement, and acceptable-use terms — **read it before
+using or redistributing**.
+
+WHOOP® and WHOOP 4.0 are trademarks of WHOOP, Inc. This project is not
+affiliated with, endorsed by, or sponsored by WHOOP, Inc.

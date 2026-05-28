@@ -5,11 +5,11 @@ build-backend = "hatchling.build"
 [project]
 name = "whoof"
 version = "0.1.0"
-description = "Use a Whoop 4.0 strap without a subscription — local SQLite logger, HRV/recovery/strain metrics, web dashboard."
+description = "Unofficial, educational BLE client for the WHOOP 4.0 strap — local SQLite logger, HRV/recovery/strain estimates, web dashboard. Not affiliated with WHOOP, Inc."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-authors = [{ name = "whoof" }]
+authors = [{ name = "Madhur Satija" }]
 keywords = ["whoop", "ble", "bluetooth", "hrv", "heart-rate", "fitness"]
 dependencies = [
   "whoop-reader>=0.1.0",

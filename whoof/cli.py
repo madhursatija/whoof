@@ -46,7 +46,13 @@ def _setup_logging(verbose: bool) -> None:
 )
 @click.pass_context
 def cli(ctx: click.Context, verbose: bool, db_path: Optional[str]) -> None:
-    """Free Whoop 4.0 client — read your strap data without a subscription."""
+    """whoof — unofficial, educational BLE client for the WHOOP 4.0 strap.
+
+    Reads sensor data from your own strap over Bluetooth and stores it locally.
+    Not affiliated with, endorsed by, or sponsored by WHOOP, Inc. WHOOP is a
+    trademark of WHOOP, Inc. Use at your own risk; not for medical or
+    clinical use. See DISCLAIMER.md.
+    """
     ctx.ensure_object(dict)
     ctx.obj["db_path"] = db_path
     _setup_logging(verbose)
