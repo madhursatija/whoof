@@ -390,6 +390,26 @@ whoof/
 [bwan]:         https://github.com/bWanShiTong/reverse-engineering-whoop
 [jacc]:         https://github.com/jacc/whoop-re
 
+---
+
+## Mirrors
+
+This project is published on two networks so it survives any one host
+going away:
+
+- **GitHub** — <https://github.com/madhursatija/whoof> (primary; issues, PRs)
+- **Radicle** — peer-to-peer, no central account needed:
+  `rad:z4AzVRT4Z3HmHgwLWpZCY9Vy4wLn9`
+  ([web view](https://radicle.network/nodes/iris.radicle.network/rad:z4AzVRT4Z3HmHgwLWpZCY9Vy4wLn9))
+
+Clone via Radicle (install [`rad`](https://radicle.xyz) first):
+
+```sh
+rad clone rad:z4AzVRT4Z3HmHgwLWpZCY9Vy4wLn9
+```
+
+Both mirrors carry the same `main` and `ios-app` branches.
+
 ## License & legal
 
 MIT, like everything upstream. See [LICENSE](LICENSE) for the warranty
