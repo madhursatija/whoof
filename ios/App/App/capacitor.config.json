@@ -1,0 +1,33 @@
+{
+	"appId": "com.whoof.dashboard",
+	"appName": "whoof",
+	"webDir": "web",
+	"bundledWebRuntime": false,
+	"ios": {
+		"scheme": "whoof",
+		"backgroundColor": "#07070AFF",
+		"contentInset": "automatic",
+		"scrollEnabled": true,
+		"limitsNavigationsToAppBoundDomains": false,
+		"preferredContentMode": "mobile"
+	},
+	"server": {
+		"iosScheme": "whoof",
+		"androidScheme": "whoof",
+		"cleartext": false
+	},
+	"plugins": {
+		"BluetoothLe": {
+			"displayStrings": {
+				"scanning": "Looking for Whoop strap…",
+				"cancel": "Cancel",
+				"availableDevices": "Whoop strap found",
+				"noDeviceFound": "No Whoop strap found nearby"
+			}
+		}
+	},
+	"packageClassList": [
+		"BluetoothLe",
+		"AppPlugin"
+	]
+}
