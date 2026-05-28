@@ -272,7 +272,8 @@ async function setupAndConnect(deviceToUse = null) {
 
   client.on('error', (err) => {
     console.error('[mvp] ble error', err);
-    showError(err.message || String(err));
+    const friendly = friendlyBleError(err);
+    if (friendly !== null) showError(friendly);
   });
 
   try {
@@ -286,8 +287,40 @@ async function setupAndConnect(deviceToUse = null) {
   } catch (err) {
     console.error(err);
     setStatus('disconnected');
-    showError(err.message || String(err));
+    const friendly = friendlyBleError(err);
+    if (friendly !== null) showError(friendly);
   }
+}
+
+// Translate Web Bluetooth DOMException messages into actionable user
+// guidance. Chrome's raw text ("Unsupported device.", "No devices found",
+// "User cancelled the requestDevice() chooser.") leaves the user with no
+// idea what to do next; the real cause is almost always one of:
+//   - strap is on the charger (advertising disabled)
+//   - strap has gone to sleep (tap to wake)
+//   - the official Whoop iOS app is holding the GATT connection
+//   - the user picked the wrong row from the picker
+// Returns null when the error is "user cancelled" — that's silent.
+function friendlyBleError(err) {
+  const msg = err?.message ?? String(err);
+  const name = err?.name ?? '';
+  if (/cancel/i.test(msg)) return null;
+  if (/no devices? (found|chosen)/i.test(msg)) {
+    return "No Whoop found nearby. Take the strap off the charger, tap it hard 2–3 times to wake it (LEDs should blink), then click Connect again within ~5 seconds.";
+  }
+  if (/unsupported device/i.test(msg)) {
+    return "That device isn't advertising the Whoop service. Likely fixes (try in order): (1) take the strap off the charger, (2) tap it 2–3 times to wake it, (3) force-quit the official Whoop app on any nearby iPhone — a strap can only talk to one host. Then click Connect and pick the entry starting with \"WHOOP\".";
+  }
+  if (name === 'SecurityError' || /secure context/i.test(msg)) {
+    return "Web Bluetooth requires HTTPS. Open this page from getwhoof.pages.dev (not file:// or plain http://).";
+  }
+  if (name === 'NotSupportedError' || /not supported/i.test(msg)) {
+    return "Web Bluetooth isn't supported in this browser. Use desktop Chrome / Edge / Brave / Arc on Mac or Windows, or Bluefy on iPhone.";
+  }
+  if (/gatt/i.test(msg)) {
+    return `Bluetooth connection dropped (${msg}). Move closer to the strap and click Connect again.`;
+  }
+  return `Bluetooth: ${msg}`;
 }
 
 connectBtn.addEventListener('click', async () => {
